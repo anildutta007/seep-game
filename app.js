@@ -254,6 +254,7 @@
       this.cacheDom();
       this.bindEvents();
       this.loadSavedMatch();
+      this.updateModeButtonUI();
 
       // Initialize Multiplayer controller
       if (window.SeepMultiplayer) {
@@ -284,6 +285,46 @@
           { id: 0, name: 'You (Anil)', role: 'South', team: 1, isHuman: true, hand: [] },
           { id: 1, name: 'Vikram', role: 'North (Opponent)', team: 2, isHuman: false, hand: [] }
         ];
+      }
+    }
+
+    switchGameMode(newMode) {
+      if (this.mode === newMode) {
+        this.hideModal(this.dom.modeModal);
+        return;
+      }
+      this.mode = newMode;
+      localStorage.setItem('seep_game_mode', this.mode);
+      if (this.dom.settingGameMode) {
+        this.dom.settingGameMode.value = this.mode;
+      }
+      this.updateModeButtonUI();
+      this.initPlayers();
+      this.hideModal(this.dom.modeModal);
+      const toastText = newMode === '2p' ? 'Switched to 2-Player Duel (South vs North)!' : 'Switched to 4-Player Team Mode!';
+      this.showToast(toastText, newMode === '2p' ? '⚔️' : '👥');
+      this.resetMatch();
+    }
+
+    updateModeButtonUI() {
+      if (this.dom?.modeIcon && this.dom?.modeLabel) {
+        if (this.mode === '2p') {
+          this.dom.modeIcon.textContent = '⚔️';
+          this.dom.modeLabel.textContent = '2 Players';
+        } else {
+          this.dom.modeIcon.textContent = '👥';
+          this.dom.modeLabel.textContent = '4 Players';
+        }
+      }
+      if (this.dom?.cardMode4P && this.dom?.cardMode2P) {
+        this.dom.cardMode4P.classList.toggle('active', this.mode === '4p');
+        this.dom.cardMode2P.classList.toggle('active', this.mode === '2p');
+      }
+      if (this.dom?.labelTeam1) {
+        this.dom.labelTeam1.textContent = this.mode === '4p' ? 'Team 1 (You & Partner)' : 'Team 1 (You)';
+      }
+      if (this.dom?.labelTeam2) {
+        this.dom.labelTeam2.textContent = this.mode === '4p' ? 'Team 2 (Opponents)' : `Team 2 (${this.players[1]?.name || 'Opponent'})`;
       }
     }
 
@@ -420,11 +461,35 @@
         btnThrownPause: document.getElementById('btnThrownPause'),
         thrownPauseIcon: document.getElementById('thrownPauseIcon'),
 
+        // Team labels & Mode switch
+        labelTeam1: document.getElementById('labelTeam1'),
+        labelTeam2: document.getElementById('labelTeam2'),
+        btnToggleMode: document.getElementById('btnToggleMode'),
+        modeIcon: document.getElementById('modeIcon'),
+        modeLabel: document.getElementById('modeLabel'),
+        modeModal: document.getElementById('modeModal'),
+        btnCloseModeModal: document.getElementById('btnCloseModeModal'),
+        cardMode4P: document.getElementById('cardMode4P'),
+        cardMode2P: document.getElementById('cardMode2P'),
+        btnSelect4P: document.getElementById('btnSelect4P'),
+        btnSelect2P: document.getElementById('btnSelect2P'),
+
         confettiCanvas: document.getElementById('confetti-canvas')
       };
     }
 
     bindEvents() {
+      // Mode switch
+      this.dom.btnToggleMode?.addEventListener('click', () => {
+        this.updateModeButtonUI();
+        this.showModal(this.dom.modeModal);
+      });
+      this.dom.btnCloseModeModal?.addEventListener('click', () => this.hideModal(this.dom.modeModal));
+      this.dom.btnSelect4P?.addEventListener('click', () => this.switchGameMode('4p'));
+      this.dom.btnSelect2P?.addEventListener('click', () => this.switchGameMode('2p'));
+      this.dom.cardMode4P?.addEventListener('click', () => this.switchGameMode('4p'));
+      this.dom.cardMode2P?.addEventListener('click', () => this.switchGameMode('2p'));
+
       // Top nav
       this.dom.btnRules.addEventListener('click', () => this.showModal(this.dom.rulesModal));
       this.dom.btnCloseRules.addEventListener('click', () => this.hideModal(this.dom.rulesModal));
@@ -795,6 +860,11 @@
       // Check if all players' hands are empty
       const allEmpty = this.players.every(p => p.hand.length === 0);
       if (allEmpty) {
+        if (this.deck.length > 0) {
+          // In 2-Player mode: Deal 2 of 2 (remaining 24 cards)
+          this.dealSubsequentHand();
+          return;
+        }
         this.finishRound();
         return;
       }
@@ -819,6 +889,23 @@
       }
     }
 
+    dealSubsequentHand() {
+      const cardsPerPlayer = Math.floor(this.deck.length / this.players.length);
+      this.players.forEach(p => {
+        const batch = this.deck.splice(0, cardsPerPlayer);
+        p.hand.push(...batch);
+        p.hand.sort((a, b) => a.captureValue - b.captureValue);
+      });
+      this.sound.playHouseBuild();
+      this.logMessage(`📦 Deal 2 of 2: ${cardsPerPlayer} fresh cards dealt to each player!`);
+      this.showToast(`Deal 2 of 2: ${cardsPerPlayer} cards dealt to each player!`, '📦');
+      this.renderTable();
+      if (this.multiplayer && this.multiplayer.isHost && this.multiplayer.isConnected) {
+        this.multiplayer.broadcastGameState();
+      }
+      this.nextTurn();
+    }
+
     // --- Move Execution ---
     executeMove(player, card, move) {
       // Remove card from hand
@@ -827,7 +914,7 @@
 
       let isSweep = false;
       const isFirstMoveOfDeal = (this.turnNumber === 0 && this.isOpeningPhase);
-      const isFinalTurnOfDeal = this.players.every(p => p.hand.length === 0);
+      const isFinalTurnOfDeal = (this.deck.length === 0 && this.players.every(p => p.hand.length === 0));
 
       const moveResult = {
         type: move.type,
@@ -1578,18 +1665,22 @@
     }
 
     renderPlayerHand() {
-      const player = this.players[0]; // South (You)
+      const localSeat = (this.multiplayer && !this.multiplayer.isHost && this.multiplayer.isConnected)
+        ? (this.multiplayer.mySeat ?? 0)
+        : 0;
+      const player = this.players[localSeat] || this.players[0];
       this.dom.playerHand.innerHTML = '';
       this.dom.countSouth.textContent = `${player.hand.length} cards`;
 
       player.hand.forEach(card => {
+        if (!card) return;
         const el = this.createCardElement(card, true);
         if (card.id === this.selectedCardId) {
           el.classList.add('selected');
         }
 
         el.addEventListener('click', () => {
-          if (this.currentTurnIndex !== 0) return; // not your turn
+          if (this.currentTurnIndex !== localSeat) return; // not your turn
           this.sound.playTone(600, 'sine', 0.08, 0.08);
 
           if (this.selectedCardId === card.id) {
@@ -1609,7 +1700,10 @@
     }
 
     renderActionBarForCard(card) {
-      const player = this.players[0];
+      const localSeat = (this.multiplayer && !this.multiplayer.isHost && this.multiplayer.isConnected)
+        ? (this.multiplayer.mySeat ?? 0)
+        : 0;
+      const player = this.players[localSeat] || this.players[0];
       const moves = this.getLegalMovesForCard(player, card);
 
       this.dom.actionPrompt.innerHTML = `<span>Card Selected: <strong>${card.label}</strong> (Value: ${card.captureValue})</span>`;
@@ -1833,6 +1927,13 @@
     updateScoreboardUI() {
       this.dom.scoreTeam1.textContent = this.matchScores.team1;
       this.dom.scoreTeam2.textContent = this.matchScores.team2;
+
+      if (this.dom.labelTeam1) {
+        this.dom.labelTeam1.textContent = this.mode === '4p' ? 'Team 1 (You & Partner)' : 'Team 1 (You)';
+      }
+      if (this.dom.labelTeam2) {
+        this.dom.labelTeam2.textContent = this.mode === '4p' ? 'Team 2 (Opponents)' : `Team 2 (${this.players[1]?.name || 'Opponent'})`;
+      }
 
       const diff = this.matchScores.team1 - this.matchScores.team2;
       if (diff >= 0) {

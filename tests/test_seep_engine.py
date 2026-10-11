@@ -157,5 +157,39 @@ class TestSeepGameEngine(unittest.TestCase):
         diff = score_team1 - score_team2
         self.assertGreaterEqual(diff, 100, "Team 1 has won the Baazi (100+ lead)")
 
+    def test_two_player_deal_distribution(self):
+        deck = create_deck()
+        self.assertEqual(len(deck), 52)
+        
+        # 2-Player Seep deal simulation:
+        # Opening: 4 floor cards, 4 to bidder
+        floor_cards = deck[:4]
+        deck = deck[4:]
+        
+        bidder_opening = deck[:4]
+        deck = deck[4:]
+        
+        # After opening play, bidder gets 8 more cards (total 12)
+        bidder_hand = bidder_opening + deck[:8]
+        deck = deck[8:]
+        self.assertEqual(len(bidder_hand), 12)
+        
+        # Opponent gets 12 cards
+        opponent_hand = deck[:12]
+        deck = deck[12:]
+        self.assertEqual(len(opponent_hand), 12)
+        
+        # First phase dealt: 4 floor + 12 bidder + 12 opponent = 28 cards
+        self.assertEqual(len(deck), 24, "24 cards remain in deck for second phase")
+        
+        # Second phase: 12 cards each
+        bidder_hand_2 = deck[:12]
+        opponent_hand_2 = deck[12:]
+        deck = []
+        
+        self.assertEqual(len(bidder_hand_2), 12)
+        self.assertEqual(len(opponent_hand_2), 12)
+        self.assertEqual(len(deck), 0, "All 52 cards played across two 12-card phases in 2-player mode")
+
 if __name__ == '__main__':
     unittest.main()

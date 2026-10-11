@@ -22,7 +22,7 @@
     <!-- Match Scoreboard -->
     <div class="header-scoreboard" id="headerScoreboard">
       <div class="team-pill team-you">
-        <span class="team-label">Team 1 (You & Partner)</span>
+        <span class="team-label" id="labelTeam1">Team 1 (You & Partner)</span>
         <span class="team-score" id="scoreTeam1">0</span>
       </div>
       <div class="score-divider">
@@ -30,12 +30,18 @@
         <div style="font-size: 0.65rem; color: #94a3b8; margin-top: 2px;">Target: 100 lead</div>
       </div>
       <div class="team-pill team-opp">
-        <span class="team-label">Team 2 (Opponents)</span>
+        <span class="team-label" id="labelTeam2">Team 2 (Opponents)</span>
         <span class="team-score" id="scoreTeam2">0</span>
       </div>
     </div>
 
-      <button class="btn btn-multiplayer" id="btnMultiplayer" title="Play with 3 Friends from Remote">
+    <!-- Header Controls -->
+    <div class="header-controls">
+      <button class="btn btn-mode-toggle" id="btnToggleMode" title="Switch between 4-Player Teams and 2-Player Duel">
+        <span id="modeIcon">👥</span>
+        <span id="modeLabel">4 Players</span>
+      </button>
+      <button class="btn btn-multiplayer" id="btnMultiplayer" title="Play with Friends (Remote WebRTC)">
         <span>🌐 Play with Friends</span>
       </button>
       <button class="btn" id="btnRules" title="How to Play Seep">
@@ -623,6 +629,17 @@
             <input type="text" id="hostNameInput" value="Anil (Host)" style="width: 100%; background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">
           </div>
 
+          <div style="margin-bottom: 14px;">
+            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 4px;">🎮 Game Format (Players):</label>
+            <select id="mpGameFormat" style="width: 100%; background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px; font-weight: 600;">
+              <option value="4p" selected>👥 4 Players (Teams: 4 Seats - Bots fill any empty seats)</option>
+              <option value="2p">⚔️ 2 Players (1-on-1 Duel: 2 Seats - You vs 1 Friend)</option>
+            </select>
+            <small style="font-size: 0.72rem; color: #94a3b8; display: block; margin-top: 3px;" id="mpFormatHint">
+              Choose 2 Players if only 1 friend is joining! Choose 4 Players to play teams.
+            </small>
+          </div>
+
           <div style="display: flex; gap: 10px; margin-bottom: 14px;">
             <button class="btn btn-primary" id="btnGenRoom" style="flex: 1;">
               <span>🎲 Generate Room & Start Hosting</span>
@@ -700,6 +717,75 @@
           </div>
         </div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Select Game Mode (2 Player vs 4 Player) -->
+  <div class="modal-overlay" id="modeModal">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-header">
+        <h2>🎮 Select Game Mode</h2>
+        <button class="modal-close" id="btnCloseModeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 12px;">
+          Choose your preferred match format. Perfect whether you have a full table or just 2 players:
+        </p>
+
+        <div class="mode-selection-grid">
+          <!-- 4-Player Card -->
+          <div class="mode-card-choice" id="cardMode4P">
+            <div>
+              <div class="mode-choice-header">
+                <span class="mode-choice-icon">👥</span>
+                <div>
+                  <div class="mode-choice-title">4 Players</div>
+                  <span style="font-size: 0.72rem; color: #6ee7b7; font-weight: 700;">Traditional Partnership</span>
+                </div>
+              </div>
+              <div class="mode-choice-desc">
+                Two teams of 2 players facing each other. Work together with your partner to build houses and score sweeps!
+              </div>
+              <div class="mode-choice-badges">
+                <span class="mode-badge-pill">4 Seats (S, W, N, E)</span>
+                <span class="mode-badge-pill">12 cards/player</span>
+                <span class="mode-badge-pill">Team Play</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btnSelect4P" style="width: 100%; justify-content: center;">
+              Play 4 Players ➔
+            </button>
+          </div>
+
+          <!-- 2-Player Card -->
+          <div class="mode-card-choice" id="cardMode2P">
+            <div>
+              <div class="mode-choice-header">
+                <span class="mode-choice-icon">⚔️</span>
+                <div>
+                  <div class="mode-choice-title">2 Players</div>
+                  <span style="font-size: 0.72rem; color: #fde047; font-weight: 700;">Head-to-Head Duel</span>
+                </div>
+              </div>
+              <div class="mode-choice-desc">
+                Fast, intense 1-on-1 battle between South and North. No extra players needed when only 2 people are available!
+              </div>
+              <div class="mode-choice-badges">
+                <span class="mode-badge-pill">2 Seats (South vs North)</span>
+                <span class="mode-badge-pill">2 Deals of 12 Cards</span>
+                <span class="mode-badge-pill">1-on-1 Duel</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btnSelect2P" style="width: 100%; justify-content: center;">
+              Play 2 Players ➔
+            </button>
+          </div>
+        </div>
+
+        <small style="color: #94a3b8; font-size: 0.75rem; display: block; text-align: center; margin-top: 8px;">
+          💡 You can also switch modes anytime from the ⚙️ Settings menu or during Multiplayer hosting!
+        </small>
       </div>
     </div>
   </div>

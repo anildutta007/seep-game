@@ -17,6 +17,7 @@
       this.roomCode = null;
       this.mySeat = 0; // 0=South (Host), 1=West, 2=North, 3=East
       this.myName = 'Anil (Host)';
+      this.gameFormat = this.game.mode || '4p';
       
       // Connections map for host: seat -> peerConnection
       this.clientConnections = {}; 
@@ -50,6 +51,7 @@
 
         // Create Panel
         hostNameInput: document.getElementById('hostNameInput'),
+        mpGameFormat: document.getElementById('mpGameFormat'),
         btnGenRoom: document.getElementById('btnGenRoom'),
         roomCodeDisplay: document.getElementById('roomCodeDisplay'),
         roomShareLink: document.getElementById('roomShareLink'),
@@ -105,6 +107,14 @@
       });
 
       // Create / Host
+      this.dom.mpGameFormat?.addEventListener('change', () => {
+        this.gameFormat = this.dom.mpGameFormat.value;
+        this.configureLobbySeatsForFormat(this.gameFormat);
+        if (this.isHost && this.isConnected) {
+          this.broadcastLobbyState();
+        }
+      });
+
       this.dom.btnGenRoom?.addEventListener('click', () => {
         const name = this.dom.hostNameInput.value.trim() || 'Anil (Host)';
         this.initHostRoom(name);
@@ -197,9 +207,8 @@
       this.myName = hostName;
       this.isHost = true;
       this.mySeat = 0; // South
-
-      this.seats[0].name = `${hostName} (You)`;
-      this.seats[0].isHuman = true;
+      this.gameFormat = this.dom.mpGameFormat ? this.dom.mpGameFormat.value : (this.game.mode || '4p');
+      this.configureLobbySeatsForFormat(this.gameFormat);
 
       const peerId = `seep_host_${this.roomCode.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
 
@@ -224,10 +233,12 @@
         this.peer.on('open', (id) => {
           this.isConnected = true;
           this.seats[0].peerId = id;
-          this.dom.hostStatusText.textContent = '🟢 Room is LIVE! Share the link or code with your 3 friends.';
+          this.dom.hostStatusText.textContent = this.gameFormat === '2p'
+            ? '🟢 Room is LIVE! Share invite link with your friend (1-on-1 Duel).'
+            : '🟢 Room is LIVE! Share invite link with your friends (Teams).';
           this.renderLobbySeats();
           this.dom.btnStartMultiplayer.disabled = false;
-          this.game.showToast(`Room ${this.roomCode} created! Share invite link with friends.`, '🌐');
+          this.game.showToast(`Room ${this.roomCode} created! Share invite link.`, '🌐');
         });
 
         this.peer.on('connection', (conn) => {
@@ -250,6 +261,23 @@
       }
     }
 
+    configureLobbySeatsForFormat(format) {
+      if (format === '2p') {
+        this.seats = [
+          { seat: 0, role: 'South', name: `${this.myName || 'You (Anil)'}`, isHuman: true, isHost: true, peerId: this.seats[0]?.peerId || null, ready: true },
+          { seat: 1, role: 'North (Opponent)', name: 'Friend (Remote)', isHuman: false, isHost: false, peerId: null, ready: true }
+        ];
+      } else {
+        this.seats = [
+          { seat: 0, role: 'South', name: `${this.myName || 'You (Anil)'}`, isHuman: true, isHost: true, peerId: this.seats[0]?.peerId || null, ready: true },
+          { seat: 1, role: 'West', name: 'Vikram (Bot)', isHuman: false, isHost: false, peerId: null, ready: true },
+          { seat: 2, role: 'North (Partner)', name: 'Gurpreet (Bot)', isHuman: false, isHost: false, peerId: null, ready: true },
+          { seat: 3, role: 'East', name: 'Kabir (Bot)', isHuman: false, isHost: false, peerId: null, ready: true }
+        ];
+      }
+      this.renderLobbySeats();
+    }
+
     handleIncomingClientConnection(conn) {
       conn.on('open', () => {
         // Wait for JOIN_REQUEST message from client
@@ -264,13 +292,15 @@
         const seat = Object.keys(this.clientConnections).find(s => this.clientConnections[s] === conn);
         if (seat !== undefined) {
           const sIdx = parseInt(seat, 10);
-          const pName = this.seats[sIdx].name;
+          const pName = this.seats[sIdx]?.name || 'Player';
           delete this.clientConnections[seat];
-          this.seats[sIdx].isHuman = false;
-          this.seats[sIdx].name = `${this.getDefaultBotName(sIdx)} (Bot)`;
+          if (this.seats[sIdx]) {
+            this.seats[sIdx].isHuman = false;
+            this.seats[sIdx].name = `${this.getDefaultBotName(sIdx)} (Bot)`;
+          }
           this.renderLobbySeats();
           this.broadcastLobbyState();
-          this.game.showToast(`${pName} disconnected. Replaced with AI bot.`, '⚠️');
+          this.game.showToast(`${pName} disconnected.`, '⚠️');
         }
       });
     }
@@ -280,14 +310,18 @@
         const { name, requestedSeat } = msg;
         // Check if requested seat is available
         let targetSeat = requestedSeat;
-        if (targetSeat === 0 || (this.seats[targetSeat].isHuman && this.seats[targetSeat].peerId)) {
+        if (this.gameFormat === '2p') {
+          targetSeat = 1;
+        } else if (targetSeat === 0 || (this.seats[targetSeat]?.isHuman && this.seats[targetSeat]?.peerId)) {
           // Find first available seat among 1, 2, 3
-          targetSeat = [2, 1, 3].find(s => !this.seats[s].isHuman) || 2;
+          targetSeat = [2, 1, 3].find(s => !this.seats[s]?.isHuman) || 2;
         }
 
-        this.seats[targetSeat].name = name;
-        this.seats[targetSeat].isHuman = true;
-        this.seats[targetSeat].peerId = conn.peer;
+        if (this.seats[targetSeat]) {
+          this.seats[targetSeat].name = name;
+          this.seats[targetSeat].isHuman = true;
+          this.seats[targetSeat].peerId = conn.peer;
+        }
         this.clientConnections[targetSeat] = conn;
 
         // Send JOIN_ACCEPTED to client
@@ -296,13 +330,14 @@
           assignedSeat: targetSeat,
           roomCode: this.roomCode,
           seats: this.seats,
-          hostName: this.myName
+          hostName: this.myName,
+          gameMode: this.gameFormat
         });
 
         this.renderLobbySeats();
         this.broadcastLobbyState();
         this.game.sound.playHouseBuild();
-        this.game.showToast(`${name} joined as ${this.seats[targetSeat].role}!`, '👋');
+        this.game.showToast(`${name} joined as ${this.seats[targetSeat]?.role || 'Player'}!`, '👋');
 
       } else if (msg.type === 'PLAY_CARD') {
         // Client executed a move on their turn
@@ -359,12 +394,19 @@
       this.seats.forEach(s => {
         const item = document.createElement('div');
         item.className = 'lobby-seat-item';
-        const roleLabel = s.seat === 0 ? 'South (Host • Team 1)' :
-                          s.seat === 2 ? 'North (Partner • Team 1)' :
-                          s.seat === 1 ? 'West (Opponent • Team 2)' : 'East (Opponent • Team 2)';
+        let roleLabel;
+        if (this.gameFormat === '2p') {
+          roleLabel = s.seat === 0 ? 'South (Host • Team 1)' : 'North (Opponent • Team 2)';
+        } else {
+          roleLabel = s.seat === 0 ? 'South (Host • Team 1)' :
+                      s.seat === 2 ? 'North (Partner • Team 1)' :
+                      s.seat === 1 ? 'West (Opponent • Team 2)' : 'East (Opponent • Team 2)';
+        }
 
         const statusTag = s.isHuman ? '<span class="seat-badge human">👤 Player</span>' : '<span class="seat-badge bot">🤖 Bot</span>';
-        const avatar = s.seat === 0 ? '👑' : s.seat === 2 ? '👳' : s.seat === 1 ? '🧔' : '👨';
+        const avatar = (this.gameFormat === '2p')
+          ? (s.seat === 0 ? '👑' : '🧔')
+          : (s.seat === 0 ? '👑' : s.seat === 2 ? '👳' : s.seat === 1 ? '🧔' : '👨');
 
         item.innerHTML = `
           <div class="lobby-seat-left">
@@ -415,7 +457,8 @@
     broadcastLobbyState() {
       this.broadcast({
         type: 'LOBBY_STATE',
-        seats: this.seats
+        seats: this.seats,
+        gameMode: this.gameFormat
       });
     }
 
@@ -430,6 +473,7 @@
           const statePayload = {
             type: 'STATE_UPDATE',
             roomCode: this.roomCode,
+            gameMode: this.gameFormat || this.game.mode,
             currentTurnIndex: this.game.currentTurnIndex,
             currentBidValue: this.game.currentBidValue,
             isOpeningPhase: this.game.isOpeningPhase,
@@ -456,6 +500,10 @@
     startMultiplayerGame() {
       if (!this.isHost) return;
 
+      const format = this.gameFormat || '4p';
+      this.game.mode = format;
+      this.game.initPlayers();
+
       // Update game player entities with lobby seat names
       this.game.players.forEach(p => {
         const s = this.seats[p.id];
@@ -468,8 +516,8 @@
       this.dom.multiplayerModal.classList.remove('active');
       this.showInGameMultiplayerBar();
 
-      this.game.logMessage(`🚀 Multiplayer Game Started! Room: ${this.roomCode}`);
-      this.broadcast({ type: 'GAME_STARTED', roomCode: this.roomCode });
+      this.game.logMessage(`🚀 Multiplayer Game Started (${format === '2p' ? '2-Player Duel' : '4-Player Team'})! Room: ${this.roomCode}`);
+      this.broadcast({ type: 'GAME_STARTED', roomCode: this.roomCode, gameMode: format });
 
       // Start fresh match
       this.game.startNewRound();
@@ -546,7 +594,14 @@
       if (msg.type === 'JOIN_ACCEPTED') {
         this.mySeat = msg.assignedSeat;
         this.seats = msg.seats;
-        const roleName = this.mySeat === 2 ? 'North (Partner of Host)' : this.mySeat === 1 ? 'West (Opponent)' : 'East (Opponent)';
+        if (msg.gameMode) {
+          this.gameFormat = msg.gameMode;
+          this.game.mode = msg.gameMode;
+          this.game.initPlayers();
+        }
+        const roleName = (this.game.mode === '2p' && this.mySeat === 1)
+          ? 'North (Opponent of Host)'
+          : this.mySeat === 2 ? 'North (Partner of Host)' : this.mySeat === 1 ? 'West (Opponent)' : 'East (Opponent)';
         this.dom.joinStatusText.textContent = `✅ Successfully joined room as ${roleName}! Waiting for Host to start...`;
         this.game.showToast(`Joined ${this.roomCode} as ${roleName}!`, '🎉');
         this.showInGameMultiplayerBar();
@@ -554,9 +609,16 @@
 
       } else if (msg.type === 'LOBBY_STATE') {
         this.seats = msg.seats;
+        if (msg.gameMode) {
+          this.gameFormat = msg.gameMode;
+        }
 
       } else if (msg.type === 'GAME_STARTED') {
-        this.game.showToast('Game has started!', '🚀');
+        if (msg.gameMode && this.game.mode !== msg.gameMode) {
+          this.game.mode = msg.gameMode;
+          this.game.initPlayers();
+        }
+        this.game.showToast(`Game has started (${msg.gameMode === '2p' ? '2-Player Duel' : '4-Player Team'})!`, '🚀');
         this.dom.multiplayerModal.classList.remove('active');
 
       } else if (msg.type === 'STATE_UPDATE') {
@@ -575,6 +637,11 @@
 
     // Apply synchronized game state sent from host
     applyRemoteGameState(state) {
+      if (state.gameMode && this.game.mode !== state.gameMode) {
+        this.game.mode = state.gameMode;
+        this.game.initPlayers();
+      }
+
       this.game.currentTurnIndex = state.currentTurnIndex;
       this.game.currentBidValue = state.currentBidValue;
       this.game.isOpeningPhase = state.isOpeningPhase;
