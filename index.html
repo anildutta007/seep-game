@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEEP (सीप) - Traditional North Indian Card Game</title>
+  <meta name="description" content="Play Seep (Sweep / Shiv), the legendary traditional card game of North India and Punjab. Features 4-player partnership and 2-player modes, house building, cementing, and sweeps.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Top Header Navigation & Scoreboard -->
+  <header class="header-bar">
+    <div class="brand-section">
+      <div class="brand-icon">♠</div>
+      <div class="brand-titles">
+        <h1>SEEP <span style="font-weight: 400; font-size: 1.1rem; opacity: 0.9;">(सीप / Sweep)</span></h1>
+        <div class="brand-subtitle">North Indian Partnership Card Game</div>
+      </div>
+    </div>
+
+    <!-- Match Scoreboard -->
+    <div class="header-scoreboard" id="headerScoreboard">
+      <div class="team-pill team-you">
+        <span class="team-label">Team 1 (You & Partner)</span>
+        <span class="team-score" id="scoreTeam1">0</span>
+      </div>
+      <div class="score-divider">
+        <div class="baazi-lead" id="baaziLeadBadge">Baazi Lead: 0 pts</div>
+        <div style="font-size: 0.65rem; color: #94a3b8; margin-top: 2px;">Target: 100 lead</div>
+      </div>
+      <div class="team-pill team-opp">
+        <span class="team-label">Team 2 (Opponents)</span>
+        <span class="team-score" id="scoreTeam2">0</span>
+      </div>
+    </div>
+
+    <!-- Top Action Buttons -->
+    <div class="header-controls">
+      <button class="btn" id="btnRules" title="How to Play Seep">
+        <span>📖 Rules</span>
+      </button>
+      <button class="btn btn-icon" id="btnSound" title="Toggle Sound FX">
+        <span id="soundIcon">🔊</span>
+      </button>
+      <button class="btn btn-icon" id="btnHistory" title="Move History Log">
+        <span>📜</span>
+      </button>
+      <button class="btn" id="btnSettings" title="Game Settings">
+        <span>⚙️ Settings</span>
+      </button>
+      <button class="btn btn-primary" id="btnNewGame" title="Start New Match">
+        <span>🔄 New Match</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Live Status Strip -->
+  <div class="status-strip">
+    <div class="status-message">
+      <span class="status-badge" id="currentTurnBadge">Turn: South (You)</span>
+      <span id="statusText">Dealing cards... Welcome to Seep!</span>
+    </div>
+    <div class="status-stats">
+      <div class="status-stat">Deal: <strong id="dealRoundNum">Round 1</strong></div>
+      <div class="status-stat">Bid: <strong id="currentBidText">Waiting...</strong></div>
+      <div class="status-stat">Sweeps (Seeps): <strong id="sweepsCountText">0 - 0</strong></div>
+    </div>
+  </div>
+
+  <!-- Main Game Arena Table -->
+  <main class="game-arena">
+
+    <!-- Top Zone: North (Partner in 4P mode, or Opponent in 2P) -->
+    <section class="player-zone zone-north" id="zoneNorth">
+      <div class="player-badge" id="badgeNorth">
+        <div class="player-avatar">👳</div>
+        <div class="player-info">
+          <div class="player-name" id="nameNorth">Gurpreet (Partner)</div>
+          <div class="player-role" id="roleNorth">Team 1 • North</div>
+        </div>
+        <div class="player-cards-count" id="countNorth">12 cards</div>
+      </div>
+      <!-- Facedown cards representation -->
+      <div class="facedown-hand" id="handNorthFacedown"></div>
+    </section>
+
+    <!-- Middle Arena: West Opponent, Central Floor / Farsh, East Opponent -->
+    <div class="arena-middle">
+      
+      <!-- West Zone: Opponent 1 -->
+      <section class="player-zone zone-west" id="zoneWest">
+        <div class="player-badge" id="badgeWest">
+          <div class="player-avatar">🧔</div>
+          <div class="player-info">
+            <div class="player-name" id="nameWest">Vikram</div>
+            <div class="player-role">Team 2 • West</div>
+          </div>
+          <div class="player-cards-count" id="countWest">12 cards</div>
+        </div>
+        <div class="facedown-hand" id="handWestFacedown"></div>
+      </section>
+
+      <!-- Central Playing Table / Floor (Farsh) -->
+      <section class="floor-table" id="floorTable">
+        
+        <!-- Upper Table: Houses Area (Ghar) -->
+        <div class="floor-houses-area">
+          <div class="floor-section-header">
+            <span>🏠 Houses on Table (Ghar)</span>
+            <span style="font-size: 0.65rem; color: #fcd34d;">Values 9 to 13</span>
+          </div>
+          <div class="cards-container" id="floorHousesContainer">
+            <!-- Houses will be injected here dynamically -->
+            <div style="font-size: 0.8rem; color: #6ee7b7; font-style: italic;" id="noHousesMsg">
+              No houses currently built. Combine cards to build a house (9-13)!
+            </div>
+          </div>
+        </div>
+
+        <!-- Lower Table: Loose Cards Area (Farsh) -->
+        <div class="floor-loose-area">
+          <div class="floor-section-header">
+            <span>🃏 Loose Cards on Floor (Khule Patte)</span>
+            <span style="font-size: 0.65rem; color: #93c5fd;" id="looseCountLabel">0 cards</span>
+          </div>
+          <div class="cards-container" id="floorLooseContainer">
+            <!-- Loose cards will be rendered here -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- East Zone: Opponent 2 -->
+      <section class="player-zone zone-east" id="zoneEast">
+        <div class="player-badge" id="badgeEast">
+          <div class="player-avatar">👨</div>
+          <div class="player-info">
+            <div class="player-name" id="nameEast">Kabir</div>
+            <div class="player-role">Team 2 • East</div>
+          </div>
+          <div class="player-cards-count" id="countEast">12 cards</div>
+        </div>
+        <div class="facedown-hand" id="handEastFacedown"></div>
+      </section>
+
+    </div>
+
+    <!-- Bottom Zone: South (Human Player) -->
+    <section class="player-zone zone-south" id="zoneSouth">
+      
+      <!-- Interactive Action Helper Bar -->
+      <div class="action-bar-container" id="actionBar">
+        <div class="action-prompt-text" id="actionPrompt">
+          <span>👉 <strong>Your Turn:</strong> Select a card from your hand to play</span>
+        </div>
+        <div class="action-buttons-group" id="actionButtons">
+          <!-- Action buttons will appear when a card is selected -->
+          <button class="btn btn-action-loose" id="btnHint">💡 Suggest Move</button>
+        </div>
+      </div>
+
+      <!-- Human Player Hand -->
+      <div class="player-hand-container">
+        <div class="player-hand" id="playerHand">
+          <!-- Player's cards will be dynamically rendered here -->
+        </div>
+      </div>
+
+      <!-- Human Player Badge -->
+      <div class="player-badge active-turn" id="badgeSouth">
+        <div class="player-avatar" style="border-color: #34d399;">👑</div>
+        <div class="player-info">
+          <div class="player-name" id="nameSouth">You (Anil)</div>
+          <div class="player-role" style="color: #34d399;">Team 1 • South (Leader)</div>
+        </div>
+        <div class="player-cards-count" id="countSouth">12 cards</div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Live Toast Banner (For SEEP, announcements) -->
+  <div class="toast-banner" id="toastBanner">
+    <span id="toastIcon">✨</span>
+    <span id="toastText">Welcome to Seep!</span>
+  </div>
+
+  <!-- Move History Drawer -->
+  <aside class="history-drawer" id="historyDrawer">
+    <div class="drawer-header">
+      <h3>📜 Move History Log</h3>
+      <button class="modal-close" id="btnCloseHistory">&times;</button>
+    </div>
+    <div class="drawer-content" id="historyList">
+      <div class="history-item">Game started. Match goal: 100 points lead (Baazi).</div>
+    </div>
+  </aside>
+
+  <!-- Modal: Opening Bid (The Chowka / Boli) -->
+  <div class="modal-overlay" id="bidModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>🃏 Opening 4-Card Deal & Bid (बोली)</h2>
+      </div>
+      <div class="modal-body">
+        <p>In traditional North Indian Seep, the opening player inspects their first 4 cards and bids a value from <strong>9 to 13</strong> that they hold in their hand.</p>
+        
+        <div style="margin-top: 14px; font-weight: 600; color: #a7f3d0;">Your First 4 Cards:</div>
+        <div class="bid-cards-row" id="bidCardsRow"></div>
+
+        <div style="margin-top: 14px; font-weight: 600; color: #fde047;">Choose Your Bid Value (9 to 13):</div>
+        <div class="bid-options-grid" id="bidOptionsGrid">
+          <!-- Bid options 9, 10, J(11), Q(12), K(13) -->
+        </div>
+
+        <div id="noBidAlert" style="display: none; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 8px; padding: 10px; margin-top: 12px; font-size: 0.85rem;">
+          ⚠️ <strong>No Valid Bid!</strong> You do not hold any card with value 9 or higher. According to traditional rules, these cards must be thrown in and re-dealt.
+          <div style="margin-top: 8px;">
+            <button class="btn btn-primary" id="btnRedeal">🔄 Throw In & Re-deal Hand</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Complex Move Choice (When multiple ways to build/capture exist) -->
+  <div class="modal-overlay" id="choiceModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="choiceModalTitle">🎯 Select Move Action</h2>
+        <button class="modal-close" id="btnCloseChoice">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="choiceModalDescription">Choose how you want to play this card:</p>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;" id="choiceModalOptions"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Rules & How to Play Handbook -->
+  <div class="modal-overlay" id="rulesModal">
+    <div class="modal-box" style="max-width: 750px;">
+      <div class="modal-header">
+        <h2>📖 Rules of Seep (सीप) & Strategy Guide</h2>
+        <button class="modal-close" id="btnCloseRules">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="rules-tabs">
+          <button class="rules-tab-btn active" data-tab="tab-overview">Overview & Goal</button>
+          <button class="rules-tab-btn" data-tab="tab-scoring">The 17 Scoring Cards (100 Pts)</button>
+          <button class="rules-tab-btn" data-tab="tab-houses">Houses (Kacha vs Pakka)</button>
+          <button class="rules-tab-btn" data-tab="tab-seep">The Seep (Sweep)</button>
+          <button class="rules-tab-btn" data-tab="tab-glossary">Hindi / Punjabi Terms</button>
+        </div>
+
+        <!-- Tab 1: Overview -->
+        <div class="rules-tab-pane active" id="tab-overview">
+          <p><strong>Seep (also spelled Sweep, Sip, or Shiv)</strong> is a beloved traditional partnership card game popular across Northern India (Punjab, Haryana, Delhi, Uttar Pradesh, Rajasthan) and Pakistan.</p>
+          <br>
+          <h4 style="color: var(--gold-accent);">The Setup & Objective:</h4>
+          <ul style="padding-left: 20px; margin-top: 6px;">
+            <li><strong>4 Players:</strong> Played in fixed partnerships of 2 (North + South vs East + West).</li>
+            <li><strong>Standard 52-Card Deck:</strong> Cards from Ace to King.</li>
+            <li><strong>Objective:</strong> Capture point cards from the table layout (the "floor" or "farsh").</li>
+            <li><strong>Baazi (Match Victory):</strong> The match ends when a team accumulates a lead of at least <strong>100 points</strong> over the opposing team.</li>
+          </ul>
+          <br>
+          <h4 style="color: var(--gold-accent);">Card Capture Values:</h4>
+          <p>For capturing and building, card numerical values are:</p>
+          <p><strong>Ace = 1</strong>, <strong>2 through 10 = face value</strong>, <strong>Jack = 11</strong>, <strong>Queen = 12</strong>, <strong>King = 13</strong>.</p>
+        </div>
+
+        <!-- Tab 2: The 17 Scoring Cards -->
+        <div class="rules-tab-pane" id="tab-scoring">
+          <p>Out of 52 cards, only <strong>17 cards carry points</strong>, summing to exactly <strong>100 points per round</strong>:</p>
+          
+          <table class="score-table">
+            <thead>
+              <tr>
+                <th>Suit / Card</th>
+                <th>Points Value</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>♠ <strong>All 13 Spades (Hukum)</strong></td>
+                <td>Equal to rank (1 to 13)</td>
+                <td>♠A=1, ♠2=2 ... ♠10=10, ♠J=11, ♠Q=12, ♠K=13 (Total = 91 pts)</td>
+              </tr>
+              <tr>
+                <td>♦ <strong>Ten of Diamonds (Eent ki Dehla)</strong></td>
+                <td><strong>6 Points</strong></td>
+                <td>The most prized individual card outside Spades!</td>
+              </tr>
+              <tr>
+                <td>♥ <strong>Ace of Hearts (Paan ka Ikka)</strong></td>
+                <td><strong>1 Point</strong></td>
+                <td>Point card</td>
+              </tr>
+              <tr>
+                <td>♣ <strong>Ace of Clubs (Chidi ka Ikka)</strong></td>
+                <td><strong>1 Point</strong></td>
+                <td>Point card</td>
+              </tr>
+              <tr>
+                <td>♦ <strong>Ace of Diamonds (Eent ka Ikka)</strong></td>
+                <td><strong>1 Point</strong></td>
+                <td>Point card</td>
+              </tr>
+              <tr style="font-weight: 800; background: rgba(212, 175, 55, 0.2);">
+                <td>Total Deck Points</td>
+                <td>100 Points</td>
+                <td>All other 35 cards are worth 0 points!</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tab 3: Houses -->
+        <div class="rules-tab-pane" id="tab-houses">
+          <p>Piles of cards grouped together on the table are called <strong>Houses (Ghar)</strong>. Houses can only be created with values from <strong>9 to 13</strong>.</p>
+          <br>
+          <h4 style="color: #fcd34d;">1. Building a House (Kacha Ghar):</h4>
+          <p>To build a house of value <strong>H (9 to 13)</strong>, you play a card from your hand onto loose floor card(s) such that their sum equals <em>H</em>. <strong>Requirement:</strong> You must hold at least one OTHER card of value <em>H</em> in your hand to prove you can capture it later!</p>
+          <br>
+          <h4 style="color: #6ee7b7;">2. Cementing a House (Pakka Ghar):</h4>
+          <p>An ordinary house is vulnerable. Adding another card or combination of the same value <em>H</em> cements it (Pakka). Once cemented, it is <strong>locked</strong>: opponents cannot alter or raise it; it can only be captured with an <em>H</em> card!</p>
+          <br>
+          <h4 style="color: #f97316;">3. Breaking / Raising a House:</h4>
+          <p>An uncemented (Kacha) house owned by the opposing team can be <strong>raised</strong> to a higher value (up to 13) by adding a card from hand, provided you hold the card of the new higher value!</p>
+        </div>
+
+        <!-- Tab 4: The Seep (Sweep) -->
+        <div class="rules-tab-pane" id="tab-seep">
+          <h4 style="color: #ef4444; font-size: 1.1rem;">⚡ What is a SEEP (Sweep)?</h4>
+          <p>A <strong>Seep</strong> occurs when a player's capture completely clears the table layout, leaving <strong>ZERO loose cards and ZERO houses</strong> on the floor!</p>
+          <br>
+          <div style="background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; padding: 12px; border-radius: 6px;">
+            <p><strong>• Normal Seep Bonus:</strong> <strong>+50 Points!</strong></p>
+            <p><strong>• Opening Move Seep:</strong> If scored on the very first play of the deal: <strong>+25 Points</strong>.</p>
+            <p><strong>• Last Turn of Deal:</strong> Capturing cards on the final play does NOT count as a Seep bonus (the capturing team simply collects all remaining cards).</p>
+          </div>
+          <br>
+          <p>Scoring multiple Seeps in a match is the fastest and most thrilling way to win a Baazi!</p>
+        </div>
+
+        <!-- Tab 5: Glossary -->
+        <div class="rules-tab-pane" id="tab-glossary">
+          <h4 style="color: var(--gold-accent);">Traditional North Indian Seep Terminology:</h4>
+          <ul style="padding-left: 20px; margin-top: 8px; line-height: 1.8;">
+            <li><strong>Farsh (फ़र्श):</strong> The floor / table where loose cards and houses lie.</li>
+            <li><strong>Boli (बोली / Chowka):</strong> The opening 4-card deal and mandatory bid (9-13).</li>
+            <li><strong>Kacha Ghar (कच्चा घर):</strong> An uncemented house that can be raised by opponents.</li>
+            <li><strong>Pakka Ghar (पक्का घर):</strong> A cemented house locked against raises.</li>
+            <li><strong>Seep / Shiv (सीप):</strong> A sweep that clears all cards from the table.</li>
+            <li><strong>Baazi (बाज़ी):</strong> Winning the match by reaching a 100-point lead.</li>
+            <li><strong>Hukum (हुकुम):</strong> Spades (♠).</li>
+            <li><strong>Eent (ईंट):</strong> Diamonds (♦).</li>
+            <li><strong>Paan (पान):</strong> Hearts (♥).</li>
+            <li><strong>Chidi (चिड़ी):</strong> Clubs (♣).</li>
+            <li><strong>Dehla (दहला):</strong> Ten of Diamonds (worth 6 points).</li>
+          </ul>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnGotRules">Got It, Let's Play!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Round Summary & Baazi Victory -->
+  <div class="modal-overlay" id="summaryModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="summaryModalTitle">🏆 Round Complete</h2>
+      </div>
+      <div class="modal-body">
+        
+        <p id="summaryHeadline" style="font-size: 1.05rem; font-weight: 600; text-align: center; color: var(--gold-accent); margin-bottom: 12px;"></p>
+
+        <div class="breakdown-grid">
+          <!-- Team 1 Card -->
+          <div class="breakdown-card" id="team1BreakdownCard">
+            <h3>Team 1 (You & Partner)</h3>
+            <div class="breakdown-row"><span>Spades Points:</span> <strong id="r1Spades">0</strong></div>
+            <div class="breakdown-row"><span>10 of Diamonds (6 pts):</span> <strong id="r1D10">0</strong></div>
+            <div class="breakdown-row"><span>Aces Points:</span> <strong id="r1Aces">0</strong></div>
+            <div class="breakdown-row"><span>Cards Points:</span> <strong id="r1Cards">0</strong></div>
+            <div class="breakdown-row"><span>Seeps (+50/25):</span> <strong id="r1Sweeps">0</strong></div>
+            <div class="breakdown-row total-row"><span>Round Total:</span> <strong id="r1Total">0</strong></div>
+          </div>
+
+          <!-- Team 2 Card -->
+          <div class="breakdown-card" id="team2BreakdownCard">
+            <h3>Team 2 (Opponents)</h3>
+            <div class="breakdown-row"><span>Spades Points:</span> <strong id="r2Spades">0</strong></div>
+            <div class="breakdown-row"><span>10 of Diamonds (6 pts):</span> <strong id="r2D10">0</strong></div>
+            <div class="breakdown-row"><span>Aces Points:</span> <strong id="r2Aces">0</strong></div>
+            <div class="breakdown-row"><span>Cards Points:</span> <strong id="r2Cards">0</strong></div>
+            <div class="breakdown-row"><span>Seeps (+50/25):</span> <strong id="r2Sweeps">0</strong></div>
+            <div class="breakdown-row total-row"><span>Round Total:</span> <strong id="r2Total">0</strong></div>
+          </div>
+        </div>
+
+        <div style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 10px; padding: 12px; text-align: center; margin-top: 10px;">
+          <div style="font-size: 0.85rem; color: #cbd5e1;">Cumulative Match Standings (Baazi):</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #fff; margin-top: 4px;" id="cumulativeMatchScores">
+            Team 1: 0 &nbsp;|&nbsp; Team 2: 0
+          </div>
+          <div style="font-size: 0.95rem; font-weight: 700; color: var(--gold-accent); margin-top: 4px;" id="baaziStatusMessage">
+            Team 1 leads by 0 points (Need 100 lead to win Baazi)
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnNextRound">Next Deal ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Settings -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-box" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>⚙️ Game Settings</h2>
+        <button class="modal-close" id="btnCloseSettings">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          
+          <div>
+            <label style="font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 6px;">Game Mode:</label>
+            <select id="settingGameMode" style="width: 100%; background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">
+              <option value="4p">4 Players (Partnership: South & North vs West & East)</option>
+              <option value="2p">2 Players (Duel: South vs North)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 6px;">AI Difficulty:</label>
+            <select id="settingDifficulty" style="width: 100%; background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">
+              <option value="medium">Medium (Smart house builder & capturer)</option>
+              <option value="master">Master (Tracks high spades & blocks sweeps)</option>
+              <option value="easy">Easy (Casual)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 6px;">Animation Speed:</label>
+            <select id="settingSpeed" style="width: 100%; background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">
+              <option value="normal">Normal (Smooth card delays)</option>
+              <option value="fast">Fast (Quick play)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="checkbox" id="settingHints" checked>
+              <span>Show Move Recommendations & Points on Cards</span>
+            </label>
+          </div>
+
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnSaveSettings">Save & Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confetti Canvas for Victory Celebrations -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <script src="app.js"></script>
+</body>
+</html>
