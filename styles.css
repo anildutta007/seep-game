@@ -23,6 +23,7 @@
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --house-uncemented: #d97706;
   --house-cemented: #059669;
+  --card-font: 'Cinzel', 'Playfair Display', Georgia, 'Times New Roman', serif;
 }
 
 * {
@@ -824,34 +825,258 @@ body {
   100% { box-shadow: 0 0 28px rgba(251, 191, 36, 1); }
 }
 
-/* ================= PLAYING CARDS ================= */
+/* ================= REALISTIC PLAYING CARDS ================= */
 .card {
   width: 68px;
   height: 98px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: var(--card-radius);
-  box-shadow: var(--card-shadow);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 5px 6px;
+  background: 
+    radial-gradient(ellipse at 50% 15%, rgba(255, 255, 255, 0.98), rgba(250, 248, 242, 0.94) 75%),
+    linear-gradient(135deg, #ffffff 0%, #faf8f5 50%, #f4eee1 100%);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 7px;
+  box-shadow: 
+    0 4px 10px rgba(0, 0, 0, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95);
   position: relative;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+  overflow: hidden;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Authentic linen / paper sheen gloss */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 28%, transparent 55%);
+  pointer-events: none;
+  z-index: 2;
+  border-radius: inherit;
+}
+
+/* Hairline inner card border */
+.card-inner-border {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  right: 3px;
+  bottom: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 5px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card.suit-hearts .card-inner-border,
+.card.suit-diamonds .card-inner-border {
+  border-color: rgba(197, 27, 36, 0.18);
+}
+
+.card.suit-spades .card-inner-border,
+.card.suit-clubs .card-inner-border {
+  border-color: rgba(18, 24, 38, 0.16);
+}
+
+/* Top-Left & Bottom-Right Corner Indices */
+.card-corner-index {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  line-height: 0.88;
+  z-index: 3;
+  pointer-events: none;
+  font-family: var(--card-font);
+}
+
+.card-corner-index.top-left {
+  top: 4px;
+  left: 4px;
+}
+
+.card-corner-index.bottom-right {
+  bottom: 4px;
+  right: 4px;
+  transform: rotate(180deg);
+}
+
+.index-rank {
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.index-suit {
+  font-size: 0.68rem;
+  margin-top: 1px;
+}
+
+/* Suit Colors with rich authentic ink tones */
+.card.suit-hearts, .card.suit-diamonds {
+  color: #c51b24; /* Deep casino playing card red */
+}
+
+.card.suit-spades, .card.suit-clubs {
+  color: #121826; /* Deep black ink */
+}
+
+/* Center Artwork Area */
+.card-face-art {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 3x5 Pips Grid Layout for Number Cards (2 to 10) */
+.card-pips-grid {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 12px;
+  right: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  align-items: center;
+  justify-items: center;
+}
+
+.card-pip {
+  font-size: 0.88rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   user-select: none;
 }
 
+.card-pip.pip-inverted {
+  transform: rotate(180deg);
+}
+
+/* Large Center Ace for ♥, ♦, ♣ */
+.ace-large-center {
+  font-size: 2.3rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+/* Grand Ornate Ace of Spades (Hukum Ka Ekka) */
+.ace-spades-ornate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ace-filigree-top {
+  font-size: 0.65rem;
+  margin-bottom: -3px;
+  opacity: 0.9;
+}
+
+.ace-spade-large {
+  font-size: 2.35rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35));
+}
+
+.ace-ribbon-text {
+  font-family: var(--card-font);
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #b45309;
+  background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+  border: 1px solid rgba(180, 83, 9, 0.5);
+  padding: 0 4px;
+  border-radius: 4px;
+  margin-top: -3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* Royal Court Cards (J, Q, K) - Authentic Reversible Double-Headed */
+.court-card-frame {
+  position: absolute;
+  top: 13px;
+  bottom: 13px;
+  left: 13px;
+  right: 13px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  background: rgba(254, 252, 232, 0.4);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.court-half {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.court-half.court-bottom {
+  transform: rotate(180deg);
+}
+
+.court-graphic {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.court-symbol {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.court-sub-suit {
+  font-size: 0.7rem;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.court-ribbon {
+  font-family: var(--card-font);
+  font-size: 0.46rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-align: center;
+  background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.35) 20%, rgba(212, 175, 55, 0.35) 80%, transparent 100%);
+  border-top: 1px solid rgba(212, 175, 55, 0.45);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  padding: 1px 0;
+  color: #78350f;
+  line-height: 1;
+}
+
+/* Hover & Interactive Elevate */
 .card:hover {
   transform: translateY(-8px) scale(1.04);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
   border-color: var(--gold-accent);
 }
 
 .card.selected {
   transform: translateY(-16px) scale(1.08);
   border: 2px solid var(--gold-accent);
-  box-shadow: 0 0 16px rgba(251, 191, 36, 0.8), 0 12px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 0 18px rgba(251, 191, 36, 0.85), 0 14px 28px rgba(0,0,0,0.55);
   z-index: 25;
 }
 
@@ -866,91 +1091,78 @@ body {
   50% { box-shadow: 0 0 14px rgba(56, 189, 248, 0.9); }
 }
 
-.card.suit-hearts, .card.suit-diamonds {
-  color: #dc2626;
-}
-
-.card.suit-spades, .card.suit-clubs {
-  color: #0f172a;
-}
-
-/* Scoring card badges */
+/* Scoring Card Badges in Seep */
 .card.point-card {
-  border: 1.5px solid rgba(212, 175, 55, 0.7);
+  border: 1.5px solid rgba(212, 175, 55, 0.8);
 }
 
 .card.point-card::after {
   content: attr(data-points);
   position: absolute;
-  top: -7px;
-  right: -7px;
+  top: -6px;
+  right: -6px;
   background: var(--gold-gradient);
   color: #000;
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 800;
   padding: 1px 5px;
   border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  z-index: 5;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  z-index: 6;
+  font-family: var(--font-family);
 }
 
 .card.suit-spades.point-card {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 0 8px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), inset 0 0 10px rgba(212, 175, 55, 0.3);
 }
 
-.card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  line-height: 1;
+/* 10 of Diamonds (+6 Seep Points) Golden Diamond Gleam */
+.card.point-card-10d {
+  border: 2px solid #fbbf24;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35), inset 0 0 8px rgba(251, 191, 36, 0.25);
 }
 
-.card-rank {
-  font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.card-suit-mini {
-  font-size: 0.85rem;
-}
-
-.card-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
-  line-height: 1;
-  opacity: 0.9;
-}
-
-.card-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  line-height: 1;
-  transform: rotate(180deg);
-}
-
-/* Facedown Opponent Cards */
+/* Facedown Opponent Cards - Authentic Premium Indian & Bicycle Deck Back */
 .card-back {
-  width: 50px;
-  height: 72px;
-  background: linear-gradient(135deg, #1e3a8a 25%, #172554 100%);
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  width: 52px;
+  height: 76px;
+  background: #ffffff;
+  border-radius: 7px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  background-image: repeating-linear-gradient(45deg, rgba(212, 175, 55, 0.15) 0, rgba(212, 175, 55, 0.15) 2px, transparent 0, transparent 8px);
+  padding: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.card-back::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  right: 3px;
+  bottom: 3px;
+  border-radius: 4px;
+  background: 
+    radial-gradient(circle at center, #1e3a8a 0%, #172554 100%);
+  background-image: 
+    repeating-linear-gradient(45deg, rgba(212, 175, 55, 0.2) 0, rgba(212, 175, 55, 0.2) 2px, transparent 0, transparent 6px),
+    repeating-linear-gradient(-45deg, rgba(212, 175, 55, 0.2) 0, rgba(212, 175, 55, 0.2) 2px, transparent 0, transparent 6px);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  outline: 1px solid rgba(255, 255, 255, 0.2);
+  outline-offset: -2px;
 }
 
 .card-back::after {
   content: '♠';
-  color: rgba(212, 175, 55, 0.4);
-  font-size: 1.1rem;
+  position: relative;
+  z-index: 2;
+  color: #fde047;
+  font-size: 1.15rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
 }
 
 .facedown-hand {
@@ -1074,34 +1286,198 @@ body {
   margin-top: 10px;
 }
 
+/* ================= REALISTIC HAND HOLDING CARDS SIMULATION ================= */
 .player-hand-container {
+  position: relative;
+  min-height: 155px;
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  min-height: 110px;
-  padding: 5px 0 15px 0;
-  perspective: 1000px;
+  padding: 8px 0 24px 0;
+  perspective: 1200px;
+  overflow: visible;
+  user-select: none;
 }
 
+/* 1. Backdrop: Arm, Sleeve, Cuff, and Palm Cradle */
+.hand-holding-backdrop {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 95px;
+  pointer-events: none;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  transition: opacity 0.3s ease;
+}
+
+.hand-wrist-sleeve {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.palm-support {
+  width: 110px;
+  height: 48px;
+  background: radial-gradient(ellipse at 50% 85%, #df9b72 0%, #cf885e 55%, #a8623b 100%);
+  border-radius: 55px 55px 18px 18px;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(168, 98, 59, 0.3);
+  border-bottom: none;
+}
+
+.shirt-cuff {
+  width: 82px;
+  height: 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+  border-radius: 4px 4px 0 0;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: none;
+}
+
+.gold-cufflink {
+  width: 7px;
+  height: 7px;
+  background: radial-gradient(circle, #fef08a 25%, #d4af37 70%, #854d0e 100%);
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  border: 0.5px solid #ca8a04;
+}
+
+.sleeve-fabric {
+  width: 92px;
+  height: 28px;
+  background: linear-gradient(180deg, #092c1a 0%, #04170e 100%);
+  border: 1.5px solid rgba(212, 175, 55, 0.45);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7);
+}
+
+/* 2. Foreground: Thumb securely gripping front of card fan */
+.hand-holding-foreground {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-35%);
+  width: 100px;
+  height: 48px;
+  pointer-events: none;
+  z-index: 30; /* In front of resting cards, behind lifted/hovered cards */
+  transition: opacity 0.3s ease;
+}
+
+.hand-thumb-grip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.thumb-digit {
+  width: 68px;
+  height: 26px;
+  background: linear-gradient(135deg, #f7caa9 0%, #df9b72 50%, #b86f44 100%);
+  border-radius: 13px 20px 13px 15px;
+  transform: rotate(-10deg);
+  border: 1px solid rgba(168, 98, 59, 0.4);
+  box-shadow: 
+    inset 0 2px 3px rgba(255, 255, 255, 0.5),
+    0 6px 14px rgba(0, 0, 0, 0.55);
+  position: relative;
+}
+
+.thumb-crease {
+  position: absolute;
+  left: 23px;
+  top: 5px;
+  width: 2px;
+  height: 15px;
+  background: rgba(140, 75, 38, 0.35);
+  border-radius: 2px;
+  box-shadow: 2px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+.thumb-nail {
+  position: absolute;
+  right: 6px;
+  top: 4px;
+  width: 15px;
+  height: 17px;
+  background: radial-gradient(ellipse at 35% 35%, #ffffff 0%, #fed7aa 45%, #f4a27e 90%);
+  border-radius: 7px 11px 9px 7px;
+  border: 1px solid rgba(184, 111, 68, 0.45);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+.thumb-drop-shadow {
+  position: absolute;
+  bottom: 0;
+  left: 10px;
+  width: 62px;
+  height: 12px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.45) 0%, transparent 75%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Fanned Cards Arrangement */
 .player-hand {
   display: flex;
   justify-content: center;
+  align-items: flex-end;
   flex-wrap: nowrap;
+  position: relative;
+  z-index: 10;
 }
 
 .player-hand .card {
-  margin-left: -22px;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), margin 0.2s ease, box-shadow 0.2s ease;
+  width: 74px;
+  height: 108px;
+  margin-left: -24px;
+  transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1), margin 0.2s ease, box-shadow 0.2s ease;
 }
 
 .player-hand .card:first-child {
   margin-left: 0;
 }
 
-.player-hand .card:hover {
-  margin-left: -10px;
-  margin-right: 12px;
-  z-index: 20;
+.player-hand.hand-fanned .card {
+  transform-origin: 50% 120%;
+  margin-left: -28px;
+}
+
+.player-hand.hand-fanned .card:first-child {
+  margin-left: 0;
+}
+
+/* Hovering lifts card out of hand grip */
+.player-hand .card:hover,
+.player-hand.hand-fanned .card:hover {
+  transform: translateY(-40px) rotate(0deg) scale(1.12) !important;
+  z-index: 50 !important;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.7), 0 0 16px rgba(251, 191, 36, 0.6);
+  border-color: var(--gold-accent);
+}
+
+/* Selected Card elevates high, with radiant golden glow */
+.player-hand .card.selected,
+.player-hand.hand-fanned .card.selected {
+  transform: translateY(-54px) rotate(0deg) scale(1.15) !important;
+  z-index: 60 !important;
+  box-shadow: 0 24px 42px rgba(0, 0, 0, 0.8), 0 0 24px rgba(251, 191, 36, 0.95);
+  border: 2px solid var(--gold-accent);
 }
 
 /* ================= ACTION BAR & MOVE PROMPT ================= */
@@ -1812,7 +2188,41 @@ body {
     height: 84px;
   }
   .player-hand .card {
-    margin-left: -26px;
+    width: 62px;
+    height: 90px;
+    margin-left: -28px;
+  }
+  .player-hand-container {
+    min-height: 130px;
+    padding-bottom: 16px;
+  }
+  .hand-holding-backdrop {
+    height: 75px;
+    width: 110px;
+  }
+  .palm-support {
+    width: 85px;
+    height: 38px;
+  }
+  .shirt-cuff {
+    width: 65px;
+  }
+  .sleeve-fabric {
+    width: 72px;
+    height: 22px;
+  }
+  .hand-holding-foreground {
+    width: 80px;
+    height: 38px;
+    bottom: 8px;
+  }
+  .thumb-digit {
+    width: 54px;
+    height: 22px;
+  }
+  .thumb-nail {
+    width: 12px;
+    height: 14px;
   }
   .arena-middle {
     flex-direction: column;

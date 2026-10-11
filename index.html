@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SEEP (सीप) - Traditional North Indian Card Game</title>
-  <meta name="description" content="Play Seep (Sweep / Shiv), the legendary traditional card game of North India and Punjab. Features 4-player partnership and 2-player modes, house building, cementing, and sweeps.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -285,10 +287,33 @@
         </div>
       </div>
 
-      <!-- Human Player Hand -->
-      <div class="player-hand-container">
-        <div class="player-hand" id="playerHand">
+      <!-- Human Player Hand with Realistic Simulated Hand Holding Grip -->
+      <div class="player-hand-container" id="playerHandContainer">
+        <!-- Backdrop: Arm, Sleeve, Cufflink, and Palm supporting cards from behind -->
+        <div class="hand-holding-backdrop" id="handBackdrop">
+          <div class="hand-wrist-sleeve">
+            <div class="palm-support"></div>
+            <div class="shirt-cuff">
+              <span class="gold-cufflink" title="Royal Indian Baize Cufflink"></span>
+            </div>
+            <div class="sleeve-fabric"></div>
+          </div>
+        </div>
+
+        <!-- Fanned Cards -->
+        <div class="player-hand hand-fanned" id="playerHand">
           <!-- Player's cards will be dynamically rendered here -->
+        </div>
+
+        <!-- Foreground: Thumb securely gripping front of card fan -->
+        <div class="hand-holding-foreground" id="handForeground">
+          <div class="hand-thumb-grip">
+            <div class="thumb-digit">
+              <div class="thumb-crease"></div>
+              <div class="thumb-nail"></div>
+            </div>
+            <div class="thumb-drop-shadow"></div>
+          </div>
         </div>
       </div>
 
@@ -603,6 +628,20 @@
               <option value="normal">Normal (Smooth card delays)</option>
               <option value="fast">Fast (Quick play)</option>
             </select>
+          </div>
+
+          <div>
+            <label style="font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 6px;">
+              ✋ Player Hand Style:
+            </label>
+            <select id="settingHandStyle" style="width: 100%; background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">
+              <option value="holding-hand" selected>✋ Realistic Hand Holding Cards (Radial Fan Arc - Recommended)</option>
+              <option value="fan-only">🪭 Fanned Arc Only</option>
+              <option value="classic">🃏 Flat Classic Strip</option>
+            </select>
+            <small style="color: #94a3b8; font-size: 0.72rem; margin-top: 4px; display: block;">
+              Simulates a real hand cradling the cards with natural fanning, palm cradle, and thumb grip.
+            </small>
           </div>
 
           <div>

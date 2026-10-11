@@ -207,6 +207,7 @@
       this.showHints = localStorage.getItem('seep_show_hints') !== 'false';
       this.turnPauseSetting = localStorage.getItem('seep_turn_pause') || '5'; // 5 seconds default as requested (thrown on floor)
       this.turnPauseMs = this.getPauseDurationMs(this.turnPauseSetting);
+      this.handStyleSetting = localStorage.getItem('seep_hand_style') || 'holding-hand';
       this.isPauseTimerPaused = false;
       this.pauseTimerInterval = null;
       this.pauseTimerRemainingMs = 0;
@@ -489,6 +490,11 @@
         pointsTableDeckSum: document.getElementById('pointsTableDeckSum'),
         pointsModalLead: document.getElementById('pointsModalLead'),
 
+        // Hand holding simulation layers
+        handBackdrop: document.getElementById('handBackdrop'),
+        handForeground: document.getElementById('handForeground'),
+        settingHandStyle: document.getElementById('settingHandStyle'),
+
         confettiCanvas: document.getElementById('confetti-canvas')
       };
     }
@@ -544,6 +550,9 @@
         this.dom.settingHints.checked = this.showHints;
         if (this.dom.settingTurnPause) {
           this.dom.settingTurnPause.value = this.turnPauseSetting;
+        }
+        if (this.dom.settingHandStyle) {
+          this.dom.settingHandStyle.value = this.handStyleSetting;
         }
         this.showModal(this.dom.settingsModal);
       });
@@ -615,6 +624,11 @@
         this.turnPauseSetting = this.dom.settingTurnPause.value;
         this.turnPauseMs = this.getPauseDurationMs(this.turnPauseSetting);
         localStorage.setItem('seep_turn_pause', this.turnPauseSetting);
+      }
+      if (this.dom.settingHandStyle) {
+        this.handStyleSetting = this.dom.settingHandStyle.value;
+        localStorage.setItem('seep_hand_style', this.handStyleSetting);
+        this.renderPlayerHand();
       }
 
       localStorage.setItem('seep_game_mode', this.mode);
@@ -1745,11 +1759,46 @@
       this.dom.playerHand.innerHTML = '';
       this.dom.countSouth.textContent = `${player.hand.length} cards`;
 
-      player.hand.forEach(card => {
-        if (!card) return;
+      const validHand = player.hand.filter(Boolean);
+      const totalCards = validHand.length;
+      const handStyle = this.handStyleSetting || 'holding-hand';
+      const isFanned = handStyle !== 'classic';
+      const showHandGraphics = handStyle === 'holding-hand';
+
+      // Update holding hand layers visibility
+      if (this.dom.handBackdrop) {
+        this.dom.handBackdrop.style.display = (showHandGraphics && totalCards > 0) ? 'flex' : 'none';
+      }
+      if (this.dom.handForeground) {
+        this.dom.handForeground.style.display = (showHandGraphics && totalCards > 0) ? 'block' : 'none';
+      }
+
+      if (isFanned) {
+        this.dom.playerHand.classList.add('hand-fanned');
+      } else {
+        this.dom.playerHand.classList.remove('hand-fanned');
+      }
+
+      validHand.forEach((card, index) => {
         const el = this.createCardElement(card, true);
         if (card.id === this.selectedCardId) {
           el.classList.add('selected');
+        }
+
+        // Apply dynamic radial fan geometry
+        if (isFanned && totalCards > 1) {
+          const mid = (totalCards - 1) / 2;
+          const norm = mid === 0 ? 0 : (index - mid) / mid; // ranges from -1.0 to +1.0
+          const maxRot = Math.min(30, Math.max(14, (totalCards - 1) * 2.8));
+          const rot = norm * maxRot;
+          const yDip = Math.abs(norm) * 12;
+
+          el.style.zIndex = index + 2;
+          if (card.id !== this.selectedCardId) {
+            el.style.transform = `rotate(${rot.toFixed(1)}deg) translateY(${yDip.toFixed(1)}px)`;
+          }
+        } else {
+          el.style.zIndex = index + 2;
         }
 
         el.addEventListener('click', () => {
@@ -1935,19 +1984,128 @@
         el.setAttribute('data-points', `+${card.scorePoints}`);
       }
 
+      if (card.suit === 'diamonds' && card.rank === '10') {
+        el.classList.add('point-card-10d');
+      }
+
+      const faceArtHtml = this.getCardFaceArt(card);
+
       el.innerHTML = `
-        <div class="card-top">
-          <span class="card-rank">${card.rank}</span>
-          <span class="card-suit-mini">${card.suitSymbol}</span>
+        <div class="card-inner-border"></div>
+        <div class="card-corner-index top-left">
+          <span class="index-rank">${card.rank}</span>
+          <span class="index-suit">${card.suitSymbol}</span>
         </div>
-        <div class="card-center">${card.suitSymbol}</div>
-        <div class="card-bottom">
-          <span class="card-rank">${card.rank}</span>
-          <span class="card-suit-mini">${card.suitSymbol}</span>
+        <div class="card-face-art">
+          ${faceArtHtml}
+        </div>
+        <div class="card-corner-index bottom-right">
+          <span class="index-rank">${card.rank}</span>
+          <span class="index-suit">${card.suitSymbol}</span>
         </div>
       `;
 
       return el;
+    }
+
+    getCardFaceArt(card) {
+      const suitSym = card.suitSymbol;
+      const rank = card.rank;
+      const val = card.captureValue;
+
+      // Ace of Spades (Hukum Ka Ekka) - Grand Filigree Ornate Emblem
+      if (rank === 'A' && card.suit === 'spades') {
+        return `
+          <div class="ace-spades-ornate">
+            <div class="ace-filigree-top">👑</div>
+            <div class="ace-spade-large">♠</div>
+            <div class="ace-ribbon-text">HUKUM</div>
+          </div>
+        `;
+      }
+
+      // Other Aces (♥, ♦, ♣)
+      if (rank === 'A') {
+        return `<div class="ace-large-center">${suitSym}</div>`;
+      }
+
+      // Royal Court Cards (Jack, Queen, King) - Authentic Reversible Double-Headed
+      if (rank === 'K' || rank === 'Q' || rank === 'J') {
+        const roleIcon = rank === 'K' ? '👑' : rank === 'Q' ? '👸' : '🛡️';
+        const roleTitle = rank === 'K' ? 'KING' : rank === 'Q' ? 'QUEEN' : 'JACK';
+        return `
+          <div class="court-card-frame court-${rank.toLowerCase()}">
+            <div class="court-half court-top">
+              <div class="court-graphic">
+                <span class="court-symbol">${roleIcon}</span>
+                <span class="court-sub-suit">${suitSym}</span>
+              </div>
+            </div>
+            <div class="court-ribbon">${roleTitle}</div>
+            <div class="court-half court-bottom">
+              <div class="court-graphic">
+                <span class="court-symbol">${roleIcon}</span>
+                <span class="court-sub-suit">${suitSym}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Number Cards 2 to 10 - Authentic Playing Card Pip Layout (3x5 Grid)
+      return this.renderPipsGridHtml(val, suitSym);
+    }
+
+    renderPipsGridHtml(val, suitSym) {
+      const positions = [];
+      if (val === 2) {
+        positions.push({ r: 1, c: 2 }, { r: 5, c: 2, inv: true });
+      } else if (val === 3) {
+        positions.push({ r: 1, c: 2 }, { r: 3, c: 2 }, { r: 5, c: 2, inv: true });
+      } else if (val === 4) {
+        positions.push({ r: 1, c: 1 }, { r: 1, c: 3 }, { r: 5, c: 1, inv: true }, { r: 5, c: 3, inv: true });
+      } else if (val === 5) {
+        positions.push({ r: 1, c: 1 }, { r: 1, c: 3 }, { r: 3, c: 2 }, { r: 5, c: 1, inv: true }, { r: 5, c: 3, inv: true });
+      } else if (val === 6) {
+        positions.push({ r: 1, c: 1 }, { r: 1, c: 3 }, { r: 3, c: 1 }, { r: 3, c: 3 }, { r: 5, c: 1, inv: true }, { r: 5, c: 3, inv: true });
+      } else if (val === 7) {
+        positions.push(
+          { r: 1, c: 1 }, { r: 1, c: 3 },
+          { r: 2, c: 2 },
+          { r: 3, c: 1 }, { r: 3, c: 3 },
+          { r: 5, c: 1, inv: true }, { r: 5, c: 3, inv: true }
+        );
+      } else if (val === 8) {
+        positions.push(
+          { r: 1, c: 1 }, { r: 1, c: 3 },
+          { r: 2, c: 2 },
+          { r: 3, c: 1 }, { r: 3, c: 3 },
+          { r: 4, c: 2, inv: true },
+          { r: 5, c: 1, inv: true }, { r: 5, c: 3, inv: true }
+        );
+      } else if (val === 9) {
+        positions.push(
+          { r: 1, c: 1 }, { r: 1, c: 3 },
+          { r: 2, c: 1 }, { r: 2, c: 3 },
+          { r: 3, c: 2 },
+          { r: 4, c: 1, inv: true }, { r: 4, c: 3, inv: true },
+          { r: 5, c: 1, inv: true }, { r: 5, c: 3, inv: true }
+        );
+      } else if (val === 10) {
+        positions.push(
+          { r: 1, c: 1 }, { r: 1, c: 3 },
+          { r: 2, c: 1 }, { r: 2, c: 2 }, { r: 2, c: 3 },
+          { r: 4, c: 1, inv: true }, { r: 4, c: 2, inv: true }, { r: 4, c: 3, inv: true },
+          { r: 5, c: 1, inv: true }, { r: 5, c: 3, inv: true }
+        );
+      }
+
+      let pipsHtml = '';
+      positions.forEach(p => {
+        pipsHtml += `<span class="card-pip ${p.inv ? 'pip-inverted' : ''}" style="grid-row: ${p.r}; grid-column: ${p.c};">${suitSym}</span>`;
+      });
+
+      return `<div class="card-pips-grid pips-${val}">${pipsHtml}</div>`;
     }
 
     createHouseElement(house) {
