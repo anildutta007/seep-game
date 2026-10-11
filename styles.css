@@ -1251,6 +1251,194 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 300;
+/* ================= REMOTE MULTIPLAYER STYLES ================= */
+.btn-multiplayer {
+  background: linear-gradient(135deg, #059669 0%, #0284c7 100%);
+  color: #fff;
+  border: 1px solid #38bdf8;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+}
+
+.btn-multiplayer:hover {
+  filter: brightness(1.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.6);
+}
+
+.multiplayer-status-bar {
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 2px solid #0284c7;
+  padding: 6px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  z-index: 42;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.mp-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mp-live-dot {
+  animation: blink-dot 1.5s infinite;
+}
+
+@keyframes blink-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.mp-seat-badge {
+  background: rgba(2, 132, 199, 0.3);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.mp-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Quick Reaction Banter Popup */
+.reactions-popup {
+  position: fixed;
+  top: 90px;
+  right: 20px;
+  background: #0f172a;
+  border: 2px solid var(--gold-accent);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  z-index: 150;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  width: 250px;
+  animation: modal-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.reactions-popup.show {
+  display: flex;
+}
+
+.reactions-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gold-accent);
+  text-transform: uppercase;
+}
+
+.reactions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.reaction-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reaction-btn:hover {
+  background: var(--gold-gradient);
+  color: #064e3b;
+  transform: translateY(-1px);
+}
+
+/* Floating Reaction Bubble */
+.reaction-bubble-float {
+  position: absolute;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gold-gradient);
+  color: #064e3b;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  z-index: 80;
+  pointer-events: none;
+  animation: bubble-float-up 3.5s forwards ease-out;
+}
+
+@keyframes bubble-float-up {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.8); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(-5px) scale(1); }
+  80% { opacity: 1; transform: translateX(-50%) translateY(-15px) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-35px) scale(0.9); }
+}
+
+/* Lobby Seats */
+.lobby-seat-item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lobby-seat-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seat-avatar {
+  font-size: 1.3rem;
+}
+
+.lobby-seat-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seat-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.seat-badge.human {
+  background: rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+  border: 1px solid #10b981;
+}
+
+.seat-badge.bot {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  border: 1px solid #64748b;
+}
+
+.btn-seat-toggle {
+  padding: 4px 8px;
+  font-size: 0.72rem;
 }
 
 /* ================= RESPONSIVE ================= */

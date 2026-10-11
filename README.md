@@ -81,11 +81,34 @@ When you play a card of value $V$:
 
 ---
 
+## 🌐 Remote Multiplayer (Play with 3 Friends from Anywhere)
+
+You can now host live multiplayer matches with **3 friends joining from remote**:
+1. Click **`🌐 Play with Friends`** in the header.
+2. Click **`🎲 Generate Room & Start Hosting`** to generate your unique **Room Code** (e.g. `SEEP-7892`).
+3. Click **`📋 Copy Link`** or **`📲 WhatsApp`** to invite your 3 friends!
+4. Friends simply open the link on their browser (PC, Mac, iPhone, or Android). No installation, accounts, or software downloads required!
+5. **Private Hands (Anti-Cheat):** Each player can only see their own 12 cards face-up; other players' cards are shown face-down.
+6. **Live Table & Turn Sync:** Table houses, loose cards, captures, and scores sync in real-time.
+7. **Empty Seats Filled with Bots:** If 1 or 2 friends join instead of 3, the host can start with bots filling the remaining seats!
+8. **Live Banter & Quick Reactions:** Send real-time card room reactions (👏 *Shabaash*, ⚡ *Seep aayegi*, 🔒 *Pakka karo*, 👑 *Wah!*).
+
+---
+
+## ⏱️ 10-Second Observational Turn Review
+
+- After any player makes a move, the game showcases the played card and action with a **10-second countdown pause** so everyone at the table can easily follow what other team members and opponents did!
+- **`Continue ⏩` button** (or **Spacebar / Enter**) lets you skip the remaining seconds early.
+- **`⏸ Pause / Resume` button** freezes the countdown indefinitely to discuss cards and tactics.
+- Fully configurable in Settings (10s, 15s, 5s, Manual, or Instant).
+
+---
+
 ## 🎮 Game Features
 
-- **2 Game Modes:**
-  - **4-Player Partnership:** Classic North Indian style (You & Gurpreet vs Vikram & Kabir).
-  - **2-Player Duel:** Fast-paced head-to-head match against the AI.
+- **Remote Multiplayer & Solo Modes:**
+  - **4-Player Multiplayer with Friends:** Host and play across the internet with 3 friends via WebRTC.
+  - **Local Solo & Partnership vs AI:** Classic North Indian style with smart bots.
 - **Intelligent AI Bots:** Bots strategically evaluate point values, protect their houses, target sweeps, and cement valuable piles.
 - **Dynamic Move Assistant & Hints:** Highlights legal captures, house builds, and cementing options for each card. Click **💡 Suggest Move** anytime for AI tips.
 - **Web Audio Sound Effects:** Real-time synthesized audio for card deals, captures, house locking, and triumphant SEEP fanfares!

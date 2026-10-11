@@ -231,6 +231,12 @@
       this.cacheDom();
       this.bindEvents();
       this.loadSavedMatch();
+
+      // Initialize Multiplayer controller
+      if (window.SeepMultiplayer) {
+        this.multiplayer = new window.SeepMultiplayer(this);
+      }
+
       this.startNewRound();
     }
 
@@ -630,6 +636,12 @@
 
         if (hasCard) {
           btn.addEventListener('click', () => {
+            if (this.multiplayer && !this.multiplayer.isHost && this.multiplayer.isConnected) {
+              this.multiplayer.sendClientBid(val);
+              this.hideModal(this.dom.bidModal);
+              return;
+            }
+
             this.currentBidValue = val;
             this.hideModal(this.dom.bidModal);
             this.logMessage(`🎯 ${bidder.name} placed opening bid for house of ${val}!`);
@@ -637,6 +649,10 @@
             this.showToast(`${bidder.name} bid ${val}!`, '🎯');
             this.dom.currentBidText.textContent = `${rankLabel}`;
             this.promptHumanFirstPlay();
+
+            if (this.multiplayer && this.multiplayer.isHost && this.multiplayer.isConnected) {
+              this.multiplayer.broadcastGameState();
+            }
           });
         }
 
@@ -1030,11 +1046,18 @@
       }
 
       const moveResult = this.executeMove(bot, bestMove.card, bestMove.move);
+      if (this.multiplayer && this.multiplayer.isHost && this.multiplayer.isConnected) {
+        this.multiplayer.broadcastGameState();
+      }
+
       const nextCb = () => {
         if (this.isOpeningPhase && bot.id === this.bidderIndex) {
           this.completeDealAfterBid();
         } else {
           this.nextTurn();
+        }
+        if (this.multiplayer && this.multiplayer.isHost && this.multiplayer.isConnected) {
+          this.multiplayer.broadcastGameState();
         }
       };
 
@@ -1473,14 +1496,28 @@
         }
 
         btn.addEventListener('click', () => {
+          if (this.multiplayer && !this.multiplayer.isHost && this.multiplayer.isConnected) {
+            // Client sends move to Host over WebRTC!
+            this.multiplayer.sendClientMove(card, m);
+            this.resetActionBar();
+            return;
+          }
+
           const moveResult = this.executeMove(player, card, m);
           this.resetActionBar();
+
+          if (this.multiplayer && this.multiplayer.isHost && this.multiplayer.isConnected) {
+            this.multiplayer.broadcastGameState();
+          }
 
           const nextCb = () => {
             if (this.isOpeningPhase && player.id === this.bidderIndex) {
               this.completeDealAfterBid();
             } else {
               this.nextTurn();
+            }
+            if (this.multiplayer && this.multiplayer.isHost && this.multiplayer.isConnected) {
+              this.multiplayer.broadcastGameState();
             }
           };
 

@@ -35,8 +35,9 @@
       </div>
     </div>
 
-    <!-- Top Action Buttons -->
-    <div class="header-controls">
+      <button class="btn btn-multiplayer" id="btnMultiplayer" title="Play with 3 Friends from Remote">
+        <span>🌐 Play with Friends</span>
+      </button>
       <button class="btn" id="btnRules" title="How to Play Seep">
         <span>📖 Rules</span>
       </button>
@@ -54,6 +55,39 @@
       </button>
     </div>
   </header>
+
+  <!-- Multiplayer In-Game Active Session Bar -->
+  <div class="multiplayer-status-bar" id="multiplayerStatusBar" style="display: none;">
+    <div class="mp-bar-info">
+      <span class="mp-live-dot">🟢</span>
+      <strong id="mpRoomBadge">Room: SEEP-7890</strong>
+      <span class="mp-seat-badge" id="mpPlayerBadge">You: South (Host)</span>
+      <span style="font-size: 0.75rem; color: #a7f3d0;">Live Remote Session</span>
+    </div>
+    <div class="mp-bar-actions">
+      <button class="btn btn-sm btn-icon" id="btnReactionsToggle" title="Send Banter / Reaction Emoji">
+        <span>💬 Banter</span>
+      </button>
+      <button class="btn btn-sm" id="btnLeaveMp" style="background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #fca5a5;">
+        <span>Leave Room</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Reaction Banter Popup -->
+  <div class="reactions-popup" id="reactionsPopup">
+    <div class="reactions-title">Send Reaction to Table:</div>
+    <div class="reactions-grid">
+      <button class="reaction-btn" data-emoji="👏" data-text="Shabaash partner!">👏 Shabaash!</button>
+      <button class="reaction-btn" data-emoji="⚡" data-text="Seep aayegi!">⚡ Seep aayegi!</button>
+      <button class="reaction-btn" data-emoji="🔒" data-text="Ghar pakka karo!">🔒 Pakka karo!</button>
+      <button class="reaction-btn" data-emoji="👑" data-text="Wah kya khel!">👑 Wah!</button>
+      <button class="reaction-btn" data-emoji="🔥" data-text="Dhyan se khelo!">🔥 Dhyan se!</button>
+      <button class="reaction-btn" data-emoji="🎯" data-text="Bach ke raho!">🎯 Bach ke!</button>
+      <button class="reaction-btn" data-emoji="😂" data-text="Arre yaar!">😂 Arre yaar!</button>
+      <button class="reaction-btn" data-emoji="🤔" data-text="Soch raha hu...">🤔 Soch raha hu...</button>
+    </div>
+  </div>
 
   <!-- Live Status Strip -->
   <div class="status-strip">
@@ -524,9 +558,117 @@
     </div>
   </div>
 
+  <!-- Modal: Remote Multiplayer (Play with 3 Friends) -->
+  <div class="modal-overlay" id="multiplayerModal">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="modal-header">
+        <h2>🌐 Play Seep with Friends (Remote Multiplayer)</h2>
+        <button class="modal-close" id="btnCloseMultiplayer">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="rules-tabs">
+          <button class="rules-tab-btn active" id="tabCreateRoom">Create Room (Host)</button>
+          <button class="rules-tab-btn" id="tabJoinRoom">Join Friend's Room</button>
+        </div>
+
+        <!-- Panel 1: Create Room (Host) -->
+        <div id="panelCreateRoom">
+          <p style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 14px;">
+            Host a real-time game room and invite up to 3 friends to play together from their browsers (PC, Mac, iPhone, Android). No install or signup needed!
+          </p>
+
+          <div style="margin-bottom: 14px;">
+            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 4px;">Your Name (Host):</label>
+            <input type="text" id="hostNameInput" value="Anil (Host)" style="width: 100%; background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+            <button class="btn btn-primary" id="btnGenRoom" style="flex: 1;">
+              <span>🎲 Generate Room & Start Hosting</span>
+            </button>
+          </div>
+
+          <div id="hostLobbyDetails" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,55,0.3); border-radius: 12px; padding: 14px; margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div>
+                <span style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Room Code:</span>
+                <div style="font-size: 1.5rem; font-weight: 900; color: var(--gold-accent); letter-spacing: 2px;" id="roomCodeDisplay">NOT CREATED</div>
+              </div>
+              <div id="hostStatusText" style="font-size: 0.8rem; color: #6ee7b7; text-align: right; max-width: 280px;">
+                Click "Generate Room" to begin hosting.
+              </div>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+              <label style="font-size: 0.75rem; color: #cbd5e1; display: block; margin-bottom: 4px;">Shareable Link for Friends:</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="roomShareLink" readonly placeholder="Link will appear here" style="flex: 1; background: #0f172a; color: #93c5fd; border: 1px solid rgba(255,255,255,0.15); padding: 7px 10px; border-radius: 6px; font-size: 0.8rem;">
+                <button class="btn btn-primary btn-sm" id="btnCopyInvite">📋 Copy</button>
+                <button class="btn btn-sm" id="btnShareWhatsApp" style="background: #25d366; color: #fff; border: none;">📲 WhatsApp</button>
+              </div>
+            </div>
+
+            <div style="font-size: 0.85rem; font-weight: 700; color: #fde047; margin-bottom: 8px;">
+              Table Seats (4 Players):
+            </div>
+            <div id="lobbySeatsList" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- 4 seats rendered dynamically -->
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button class="btn btn-primary" id="btnStartMultiplayer" disabled style="padding: 10px 22px; font-size: 1rem;">
+              <span>🚀 Start Game (Fill Empty Seats with Bots)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Panel 2: Join Room -->
+        <div id="panelJoinRoom" style="display: none;">
+          <p style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 14px;">
+            Enter the 4-digit Room Code given by your friend hosting the match.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 4px;">Room Code:</label>
+              <input type="text" id="joinRoomInput" placeholder="e.g. SEEP-8492" style="width: 100%; background: #1e293b; color: #fde047; border: 1px solid rgba(255,255,255,0.2); padding: 10px 14px; border-radius: 8px; font-size: 1.1rem; font-weight: 700; text-transform: uppercase;">
+            </div>
+
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 4px;">Your Name:</label>
+              <input type="text" id="joinNameInput" placeholder="e.g. Rohit" style="width: 100%; background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">
+            </div>
+
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 4px;">Preferred Seat / Role:</label>
+              <select id="joinSeatSelect" style="width: 100%; background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">
+                <option value="2">North (Partner of Host Anil • Team 1)</option>
+                <option value="1">West (Opponent • Team 2)</option>
+                <option value="3">East (Opponent • Team 2)</option>
+              </select>
+            </div>
+
+            <div id="joinStatusText" style="font-size: 0.82rem; color: #94a3b8; font-style: italic;">
+              Ready to connect to host.
+            </div>
+
+            <button class="btn btn-primary" id="btnConnectRoom" style="padding: 12px; font-size: 1rem; width: 100%;">
+              <span>🔗 Connect & Take Seat</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Confetti Canvas for Victory Celebrations -->
   <canvas id="confetti-canvas"></canvas>
 
+  <script src="lib/peerjs.min.js"></script>
+  <script src="multiplayer.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
