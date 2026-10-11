@@ -126,6 +126,29 @@
       this.playTone(480, 'triangle', 0.1, 0.15);
     }
 
+    playCardThrowSnap() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      try {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(340, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.28, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.08);
+
+        setTimeout(() => {
+          this.playTone(180, 'sine', 0.1, 0.15);
+        }, 25);
+      } catch (e) {}
+    }
+
     playCardCapture() {
       if (!this.enabled) return;
       this.init();
@@ -182,7 +205,7 @@
       this.difficulty = localStorage.getItem('seep_difficulty') || 'medium';
       this.speed = localStorage.getItem('seep_speed') || 'normal';
       this.showHints = localStorage.getItem('seep_show_hints') !== 'false';
-      this.turnPauseSetting = localStorage.getItem('seep_turn_pause') || '10'; // 10 seconds default as requested
+      this.turnPauseSetting = localStorage.getItem('seep_turn_pause') || '5'; // 5 seconds default as requested (thrown on floor)
       this.turnPauseMs = this.getPauseDurationMs(this.turnPauseSetting);
       this.isPauseTimerPaused = false;
       this.pauseTimerInterval = null;
@@ -243,7 +266,7 @@
     getPauseDurationMs(setting) {
       if (setting === 'manual') return Infinity;
       const secs = parseInt(setting, 10);
-      if (isNaN(secs)) return 10000;
+      if (isNaN(secs)) return 5000;
       return secs * 1000;
     }
 
@@ -369,7 +392,7 @@
         settingHints: document.getElementById('settingHints'),
         settingTurnPause: document.getElementById('settingTurnPause'),
 
-        // Turn Showcase & 10s Pause
+        // Turn Showcase & Observational Pause
         turnShowcaseBar: document.getElementById('turnShowcaseBar'),
         showcaseCardSlot: document.getElementById('showcaseCardSlot'),
         showcaseAvatar: document.getElementById('showcaseAvatar'),
@@ -381,6 +404,21 @@
         showcaseCountdownNum: document.getElementById('showcaseCountdownNum'),
         btnPauseTurnTimer: document.getElementById('btnPauseTurnTimer'),
         pauseTimerIcon: document.getElementById('pauseTimerIcon'),
+
+        // Center Table Thrown Card Spotlight (5-Second View)
+        thrownCardSpotlight: document.getElementById('thrownCardSpotlight'),
+        thrownCardWrapper: document.getElementById('thrownCardWrapper'),
+        thrownAvatar: document.getElementById('thrownAvatar'),
+        thrownPlayerName: document.getElementById('thrownPlayerName'),
+        thrownActionLabel: document.getElementById('thrownActionLabel'),
+        thrownCardAnchor: document.getElementById('thrownCardAnchor'),
+        thrownBadgeTag: document.getElementById('thrownBadgeTag'),
+        thrownDesc: document.getElementById('thrownDesc'),
+        thrownCountdownNum: document.getElementById('thrownCountdownNum'),
+        thrownProgressFill: document.getElementById('thrownProgressFill'),
+        btnThrownContinue: document.getElementById('btnThrownContinue'),
+        btnThrownPause: document.getElementById('btnThrownPause'),
+        thrownPauseIcon: document.getElementById('thrownPauseIcon'),
 
         confettiCanvas: document.getElementById('confetti-canvas')
       };
@@ -418,9 +456,11 @@
       this.dom.btnCloseSettings.addEventListener('click', () => this.hideModal(this.dom.settingsModal));
       this.dom.btnSaveSettings.addEventListener('click', () => this.saveSettings());
 
-      // Turn Showcase controls
-      this.dom.btnContinueTurn.addEventListener('click', () => this.skipTurnPause());
-      this.dom.btnPauseTurnTimer.addEventListener('click', () => this.toggleTurnPauseTimer());
+      // Turn Showcase & Center Table Thrown Card controls
+      this.dom.btnContinueTurn?.addEventListener('click', () => this.skipTurnPause());
+      this.dom.btnPauseTurnTimer?.addEventListener('click', () => this.toggleTurnPauseTimer());
+      this.dom.btnThrownContinue?.addEventListener('click', () => this.skipTurnPause());
+      this.dom.btnThrownPause?.addEventListener('click', () => this.toggleTurnPauseTimer());
 
       // Spacebar or Enter shortcuts to quickly continue turn pause
       window.addEventListener('keydown', (e) => {
@@ -945,7 +985,7 @@
       return moveResult;
     }
 
-    // --- Turn Showcase & Observational Pause (10s Default) ---
+    // --- Center Floor Table Thrown Card Spotlight & 5s Observational Pause ---
     displayTurnShowcase(player, card, move, moveResult, callback) {
       // If pause setting is 0, continue immediately
       if (this.turnPauseSetting === '0') {
@@ -954,41 +994,120 @@
       }
 
       this.clearTurnPauseTimer();
+      this.clearTargetHighlights();
       this.pendingTurnCallback = callback;
 
-      // Render played card in showcase slot
-      this.dom.showcaseCardSlot.innerHTML = '';
-      const cardEl = this.createCardElement(card, false);
-      this.dom.showcaseCardSlot.appendChild(cardEl);
+      // 1. Determine directional throw landing animation based on player position
+      let throwClass = 'card-throw-from-south';
+      if (this.mode === '4p') {
+        if (player.id === 1) throwClass = 'card-throw-from-west';
+        else if (player.id === 2) throwClass = 'card-throw-from-north';
+        else if (player.id === 3) throwClass = 'card-throw-from-east';
+      } else {
+        if (player.id === 1) throwClass = 'card-throw-from-north';
+      }
 
-      // Player avatar & tag
+      // 2. Play tactile card throw snap onto floor table
+      this.sound.playCardThrowSnap();
+
+      // 3. Render card in Center Table Spotlight Anchor
+      if (this.dom.thrownCardAnchor) {
+        this.dom.thrownCardAnchor.innerHTML = '';
+        const cardEl = this.createCardElement(card, false);
+        cardEl.classList.add(throwClass);
+        this.dom.thrownCardAnchor.appendChild(cardEl);
+      }
+
+      // 4. Update Spotlight header & badges
       const avatar = player.id === 0 ? '👑' : player.id === 2 ? '👳' : player.id === 1 ? '🧔' : '👨';
-      this.dom.showcaseAvatar.textContent = avatar;
-      this.dom.showcasePlayerName.textContent = `${player.name} (${player.role})`;
+      if (this.dom.thrownAvatar) this.dom.thrownAvatar.textContent = avatar;
+      if (this.dom.thrownPlayerName) this.dom.thrownPlayerName.textContent = `${player.name} (${player.role || (player.id === 0 ? 'South' : 'Table')})`;
+      if (this.dom.thrownBadgeTag) {
+        this.dom.thrownBadgeTag.className = 'thrown-badge-tag ' + (moveResult.badgeClass || 'badge-loose');
+        this.dom.thrownBadgeTag.textContent = moveResult.badgeText || 'Action';
+      }
+      if (this.dom.thrownDesc) {
+        this.dom.thrownDesc.innerHTML = moveResult.descriptionHtml || `Played <strong>${card.label}</strong> onto table.`;
+      }
 
-      // Badge & message
-      this.dom.showcaseActionBadge.className = 'showcase-badge ' + (moveResult.badgeClass || 'badge-loose');
-      this.dom.showcaseActionBadge.textContent = moveResult.badgeText || 'Action';
-      this.dom.showcaseMessage.innerHTML = moveResult.descriptionHtml;
+      // 5. Highlight target floor cards / houses involved in the move
+      this.highlightedElements = [];
+      if (move) {
+        // Highlight houses captured or cemented/raised
+        if (move.houses && Array.isArray(move.houses)) {
+          move.houses.forEach(h => {
+            const el = document.getElementById(h.id);
+            if (el) {
+              el.classList.add('highlight-target-action');
+              this.highlightedElements.push(el);
+            }
+          });
+        }
+        if (move.houseId) {
+          const el = document.getElementById(move.houseId);
+          if (el) {
+            el.classList.add('highlight-target-action');
+            this.highlightedElements.push(el);
+          }
+        }
 
-      // Show the bar
-      this.dom.turnShowcaseBar.style.display = 'flex';
+        // Highlight loose floor cards captured or used to build
+        const looseTargets = [
+          ...(move.looseCards || []),
+          ...(move.floorCards || []),
+          ...(move.extraFloorCards || [])
+        ];
+        looseTargets.forEach(c => {
+          if (c && c.id) {
+            const el = document.getElementById(c.id);
+            if (el) {
+              el.classList.add('highlight-target-action');
+              this.highlightedElements.push(el);
+            }
+          }
+        });
+      }
+
+      // 6. Display Center Table Spotlight
+      if (this.dom.thrownCardSpotlight) {
+        this.dom.thrownCardSpotlight.style.display = 'flex';
+      }
+      if (this.dom.turnShowcaseBar) {
+        this.dom.turnShowcaseBar.style.display = 'none'; // Replaced by center floor table spotlight
+      }
+
+      // 7. Reset pause/resume state
       this.isPauseTimerPaused = false;
-      this.dom.pauseTimerIcon.textContent = '⏸';
+      if (this.dom.thrownPauseIcon) this.dom.thrownPauseIcon.textContent = '⏸';
+      if (this.dom.pauseTimerIcon) this.dom.pauseTimerIcon.textContent = '⏸';
 
-      // Manual mode: wait for user to click Continue
+      // 8. Broadcast to remote clients in multiplayer
+      if (this.multiplayer && this.multiplayer.isHost && this.multiplayer.isConnected) {
+        try {
+          this.multiplayer.broadcast({
+            type: 'SHOWCASE_MOVE',
+            player: { id: player.id, name: player.name, role: player.role },
+            card: card,
+            move: move,
+            moveResult: moveResult
+          });
+        } catch(e) {}
+      }
+
+      // 9. Manual mode
       if (this.turnPauseSetting === 'manual') {
-        this.dom.showcaseTimerBar.style.width = '100%';
-        this.dom.showcaseCountdownNum.textContent = 'Manual';
+        if (this.dom.thrownProgressFill) this.dom.thrownProgressFill.style.width = '100%';
+        if (this.dom.thrownCountdownNum) this.dom.thrownCountdownNum.textContent = 'Manual';
         return;
       }
 
+      // 10. Countdown Timer (5s default)
       const durationMs = this.turnPauseMs;
       let remainingMs = durationMs;
       this.pauseTimerRemainingMs = remainingMs;
 
-      this.dom.showcaseTimerBar.style.width = '100%';
-      this.dom.showcaseCountdownNum.textContent = `${Math.ceil(remainingMs / 1000)}s`;
+      if (this.dom.thrownProgressFill) this.dom.thrownProgressFill.style.width = '100%';
+      if (this.dom.thrownCountdownNum) this.dom.thrownCountdownNum.textContent = `${Math.ceil(remainingMs / 1000)}s`;
 
       const intervalStep = 100;
       this.pauseTimerInterval = setInterval(() => {
@@ -998,8 +1117,8 @@
         this.pauseTimerRemainingMs = remainingMs;
 
         const percent = Math.max(0, (remainingMs / durationMs) * 100);
-        this.dom.showcaseTimerBar.style.width = `${percent}%`;
-        this.dom.showcaseCountdownNum.textContent = `${Math.ceil(remainingMs / 1000)}s`;
+        if (this.dom.thrownProgressFill) this.dom.thrownProgressFill.style.width = `${percent}%`;
+        if (this.dom.thrownCountdownNum) this.dom.thrownCountdownNum.textContent = `${Math.ceil(remainingMs / 1000)}s`;
 
         if (remainingMs <= 0) {
           this.skipTurnPause();
@@ -1007,11 +1126,37 @@
       }, intervalStep);
     }
 
+    clearTargetHighlights() {
+      if (this.highlightedElements && this.highlightedElements.length > 0) {
+        this.highlightedElements.forEach(el => {
+          try { el.classList.remove('highlight-target-action'); } catch(e) {}
+        });
+        this.highlightedElements = [];
+      }
+      document.querySelectorAll('.highlight-target-action').forEach(el => {
+        el.classList.remove('highlight-target-action');
+      });
+    }
+
     skipTurnPause() {
       this.clearTurnPauseTimer();
+      this.clearTargetHighlights();
+
+      if (this.dom.thrownCardSpotlight) {
+        this.dom.thrownCardSpotlight.style.display = 'none';
+      }
       if (this.dom.turnShowcaseBar) {
         this.dom.turnShowcaseBar.style.display = 'none';
       }
+
+      // Multiplayer synchronization: if client, notify host; if host, notify clients
+      if (this.multiplayer && !this.multiplayer.isHost && this.multiplayer.isConnected && this.multiplayer.hostConnection) {
+        try { this.multiplayer.hostConnection.send({ type: 'SKIP_PAUSE' }); } catch(e) {}
+      }
+      if (this.multiplayer && this.multiplayer.isHost && this.multiplayer.isConnected) {
+        try { this.multiplayer.broadcast({ type: 'SKIP_PAUSE' }); } catch(e) {}
+      }
+
       if (this.pendingTurnCallback) {
         const cb = this.pendingTurnCallback;
         this.pendingTurnCallback = null;
@@ -1022,11 +1167,14 @@
     toggleTurnPauseTimer() {
       if (this.turnPauseSetting === 'manual') return;
       this.isPauseTimerPaused = !this.isPauseTimerPaused;
-      this.dom.pauseTimerIcon.textContent = this.isPauseTimerPaused ? '▶' : '⏸';
+      const icon = this.isPauseTimerPaused ? '▶' : '⏸';
+      if (this.dom.thrownPauseIcon) this.dom.thrownPauseIcon.textContent = icon;
+      if (this.dom.pauseTimerIcon) this.dom.pauseTimerIcon.textContent = icon;
+
       if (this.isPauseTimerPaused) {
-        this.showToast('Turn review timer paused. Take your time!', '⏸');
+        this.showToast('Card review paused. Take your time!', '⏸');
       } else {
-        this.showToast('Turn review timer resumed.', '▶');
+        this.showToast('Card review resumed.', '▶');
       }
     }
 

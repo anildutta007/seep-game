@@ -194,6 +194,46 @@
           </div>
         </div>
 
+        <!-- Real-Life Card Thrown on Center Floor Table Spotlight (5-Second View) -->
+        <div class="thrown-card-spotlight" id="thrownCardSpotlight" style="display: none;">
+          <div class="thrown-card-wrapper" id="thrownCardWrapper">
+            <div class="thrown-header-line">
+              <span class="thrown-avatar" id="thrownAvatar">🧔</span>
+              <div class="thrown-titles">
+                <span class="thrown-player-name" id="thrownPlayerName">Vikram</span>
+                <span class="thrown-action-label" id="thrownActionLabel">threw card on table:</span>
+              </div>
+            </div>
+            
+            <div class="thrown-stage">
+              <div class="thrown-card-anchor" id="thrownCardAnchor">
+                <!-- Played card lands here with 3D throw animation -->
+              </div>
+              <div class="thrown-details">
+                <div class="thrown-badge-tag" id="thrownBadgeTag">⚡ Capturing Cards</div>
+                <div class="thrown-desc" id="thrownDesc">Picked up House of 10 & loose 7+3 (+16 pts)</div>
+              </div>
+            </div>
+
+            <!-- 5-Second Observational Countdown & Controls -->
+            <div class="thrown-timer-row">
+              <div class="thrown-timer-badge">
+                <span>⏱️ On Table:</span>
+                <strong id="thrownCountdownNum">5s</strong>
+              </div>
+              <div class="thrown-progress-track">
+                <div class="thrown-progress-fill" id="thrownProgressFill"></div>
+              </div>
+              <button class="btn btn-sm btn-primary btn-thrown-continue" id="btnThrownContinue" title="Continue now (Spacebar / Enter)">
+                <span>Continue ⏩</span>
+              </button>
+              <button class="btn btn-sm btn-icon" id="btnThrownPause" title="Freeze / Pause timer">
+                <span id="thrownPauseIcon">⏸</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
       </section>
 
       <!-- East Zone: Opponent 2 -->
@@ -519,18 +559,18 @@
 
           <div>
             <label style="font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 6px;">
-              ⏱️ Turn Review Pause (Time to see others' moves):
+              ⏱️ Card Thrown on Table Duration:
             </label>
             <select id="settingTurnPause" style="width: 100%; background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">
-              <option value="10" selected>10 Seconds (Recommended - Traditional North Indian pace)</option>
-              <option value="15">15 Seconds (Extra relaxed - Ample time to see everything)</option>
-              <option value="5">5 Seconds (Quick glance)</option>
+              <option value="5" selected>5 Seconds (Card Thrown on Floor - Recommended)</option>
+              <option value="10">10 Seconds (Extra Relaxed Observational Pace)</option>
+              <option value="3">3 Seconds (Quick Glance)</option>
               <option value="manual">Manual (Click "Continue ⏩" to advance each turn)</option>
-              <option value="2">2 Seconds (Fast)</option>
+              <option value="1">1 Second (Fast)</option>
               <option value="0">0 Seconds (Instant)</option>
             </select>
             <small style="color: #94a3b8; font-size: 0.72rem; margin-top: 4px; display: block;">
-              Shows the played card & captures clearly. You can also click "Continue ⏩" or press Spacebar anytime to skip!
+              Simulates a real game when card is thrown on the center table. You can click "Continue ⏩" or press Spacebar anytime to skip!
             </small>
           </div>
 

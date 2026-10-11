@@ -562,6 +562,12 @@
       } else if (msg.type === 'STATE_UPDATE') {
         this.applyRemoteGameState(msg);
 
+      } else if (msg.type === 'SHOWCASE_MOVE') {
+        this.game.displayTurnShowcase(msg.player, msg.card, msg.move, msg.moveResult, () => {});
+
+      } else if (msg.type === 'SKIP_PAUSE') {
+        this.game.skipTurnPause();
+
       } else if (msg.type === 'REACTION') {
         this.displayReactionPopup(msg.seat, msg.emoji, msg.text);
       }
