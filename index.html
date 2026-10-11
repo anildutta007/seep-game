@@ -85,6 +85,37 @@
       <div class="facedown-hand" id="handNorthFacedown"></div>
     </section>
 
+    <!-- Turn Review Showcase: 10-Second Pause & Move Broadcast -->
+    <section class="turn-showcase-bar" id="turnShowcaseBar" style="display: none;">
+      <div class="showcase-card-slot" id="showcaseCardSlot">
+        <!-- The played card will appear here -->
+      </div>
+      <div class="showcase-info">
+        <div class="showcase-header">
+          <span class="showcase-player-tag" id="showcasePlayerTag">
+            <span id="showcaseAvatar">🧔</span>
+            <strong id="showcasePlayerName">Vikram (West)</strong>
+          </span>
+          <span class="showcase-badge" id="showcaseActionBadge">⚡ Captured</span>
+        </div>
+        <div class="showcase-message" id="showcaseMessage">
+          Played <strong>10♠</strong> and captured House of 10 (+16 points gained)
+        </div>
+        <div class="showcase-timer-track">
+          <div class="showcase-timer-bar" id="showcaseTimerBar"></div>
+        </div>
+      </div>
+      <div class="showcase-actions">
+        <button class="btn btn-primary btn-showcase-continue" id="btnContinueTurn" title="Skip remaining pause and continue (Spacebar / Enter)">
+          <span>Continue ⏩</span>
+          <span class="countdown-badge" id="showcaseCountdownNum">10s</span>
+        </button>
+        <button class="btn btn-icon btn-showcase-pause" id="btnPauseTurnTimer" title="Pause / Resume timer">
+          <span id="pauseTimerIcon">⏸</span>
+        </button>
+      </div>
+    </section>
+
     <!-- Middle Arena: West Opponent, Central Floor / Farsh, East Opponent -->
     <div class="arena-middle">
       
@@ -450,6 +481,23 @@
               <option value="master">Master (Tracks high spades & blocks sweeps)</option>
               <option value="easy">Easy (Casual)</option>
             </select>
+          </div>
+
+          <div>
+            <label style="font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 6px;">
+              ⏱️ Turn Review Pause (Time to see others' moves):
+            </label>
+            <select id="settingTurnPause" style="width: 100%; background: #1e293b; color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px;">
+              <option value="10" selected>10 Seconds (Recommended - Traditional North Indian pace)</option>
+              <option value="15">15 Seconds (Extra relaxed - Ample time to see everything)</option>
+              <option value="5">5 Seconds (Quick glance)</option>
+              <option value="manual">Manual (Click "Continue ⏩" to advance each turn)</option>
+              <option value="2">2 Seconds (Fast)</option>
+              <option value="0">0 Seconds (Instant)</option>
+            </select>
+            <small style="color: #94a3b8; font-size: 0.72rem; margin-top: 4px; display: block;">
+              Shows the played card & captures clearly. You can also click "Continue ⏩" or press Spacebar anytime to skip!
+            </small>
           </div>
 
           <div>

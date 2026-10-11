@@ -182,6 +182,12 @@
       this.difficulty = localStorage.getItem('seep_difficulty') || 'medium';
       this.speed = localStorage.getItem('seep_speed') || 'normal';
       this.showHints = localStorage.getItem('seep_show_hints') !== 'false';
+      this.turnPauseSetting = localStorage.getItem('seep_turn_pause') || '10'; // 10 seconds default as requested
+      this.turnPauseMs = this.getPauseDurationMs(this.turnPauseSetting);
+      this.isPauseTimerPaused = false;
+      this.pauseTimerInterval = null;
+      this.pauseTimerRemainingMs = 0;
+      this.pendingTurnCallback = null;
 
       // Players setup
       // Team 1 = South (You) + North (Partner in 4P)
@@ -226,6 +232,13 @@
       this.bindEvents();
       this.loadSavedMatch();
       this.startNewRound();
+    }
+
+    getPauseDurationMs(setting) {
+      if (setting === 'manual') return Infinity;
+      const secs = parseInt(setting, 10);
+      if (isNaN(secs)) return 10000;
+      return secs * 1000;
     }
 
     initPlayers() {
@@ -348,6 +361,20 @@
         settingDifficulty: document.getElementById('settingDifficulty'),
         settingSpeed: document.getElementById('settingSpeed'),
         settingHints: document.getElementById('settingHints'),
+        settingTurnPause: document.getElementById('settingTurnPause'),
+
+        // Turn Showcase & 10s Pause
+        turnShowcaseBar: document.getElementById('turnShowcaseBar'),
+        showcaseCardSlot: document.getElementById('showcaseCardSlot'),
+        showcaseAvatar: document.getElementById('showcaseAvatar'),
+        showcasePlayerName: document.getElementById('showcasePlayerName'),
+        showcaseActionBadge: document.getElementById('showcaseActionBadge'),
+        showcaseMessage: document.getElementById('showcaseMessage'),
+        showcaseTimerBar: document.getElementById('showcaseTimerBar'),
+        btnContinueTurn: document.getElementById('btnContinueTurn'),
+        showcaseCountdownNum: document.getElementById('showcaseCountdownNum'),
+        btnPauseTurnTimer: document.getElementById('btnPauseTurnTimer'),
+        pauseTimerIcon: document.getElementById('pauseTimerIcon'),
 
         confettiCanvas: document.getElementById('confetti-canvas')
       };
@@ -377,10 +404,29 @@
         this.dom.settingDifficulty.value = this.difficulty;
         this.dom.settingSpeed.value = this.speed;
         this.dom.settingHints.checked = this.showHints;
+        if (this.dom.settingTurnPause) {
+          this.dom.settingTurnPause.value = this.turnPauseSetting;
+        }
         this.showModal(this.dom.settingsModal);
       });
       this.dom.btnCloseSettings.addEventListener('click', () => this.hideModal(this.dom.settingsModal));
       this.dom.btnSaveSettings.addEventListener('click', () => this.saveSettings());
+
+      // Turn Showcase controls
+      this.dom.btnContinueTurn.addEventListener('click', () => this.skipTurnPause());
+      this.dom.btnPauseTurnTimer.addEventListener('click', () => this.toggleTurnPauseTimer());
+
+      // Spacebar or Enter shortcuts to quickly continue turn pause
+      window.addEventListener('keydown', (e) => {
+        const isAnyModalOpen = document.querySelector('.modal-overlay.active');
+        if (isAnyModalOpen) return;
+        if (e.code === 'Space' || e.code === 'Enter') {
+          if (this.dom.turnShowcaseBar && this.dom.turnShowcaseBar.style.display !== 'none') {
+            e.preventDefault();
+            this.skipTurnPause();
+          }
+        }
+      });
 
       this.dom.btnNewGame.addEventListener('click', () => {
         if (confirm('Are you sure you want to start a brand new match? This resets cumulative Baazi scores.')) {
@@ -425,6 +471,11 @@
       this.difficulty = this.dom.settingDifficulty.value;
       this.speed = this.dom.settingSpeed.value;
       this.showHints = this.dom.settingHints.checked;
+      if (this.dom.settingTurnPause) {
+        this.turnPauseSetting = this.dom.settingTurnPause.value;
+        this.turnPauseMs = this.getPauseDurationMs(this.turnPauseSetting);
+        localStorage.setItem('seep_turn_pause', this.turnPauseSetting);
+      }
 
       localStorage.setItem('seep_game_mode', this.mode);
       localStorage.setItem('seep_difficulty', this.difficulty);
@@ -457,6 +508,8 @@
     }
 
     resetMatch() {
+      this.clearTurnPauseTimer();
+      if (this.dom.turnShowcaseBar) this.dom.turnShowcaseBar.style.display = 'none';
       this.matchScores = { team1: 0, team2: 0, roundsPlayed: 0 };
       this.saveMatchScores();
       this.isBaaziWon = false;
@@ -465,6 +518,8 @@
 
     // --- Round Lifecycle ---
     startNewRound() {
+      this.clearTurnPauseTimer();
+      if (this.dom.turnShowcaseBar) this.dom.turnShowcaseBar.style.display = 'none';
       this.isRoundOver = false;
       this.turnNumber = 0;
       this.lastCapturingTeam = null;
@@ -634,8 +689,10 @@
                         moves.find(m => m.type === 'build') ||
                         moves.find(m => m.type === 'loose');
 
-      this.executeMove(bidder, bidCard, chosenMove);
-      this.completeDealAfterBid();
+      const moveResult = this.executeMove(bidder, bidCard, chosenMove);
+      this.displayTurnShowcase(bidder, bidCard, chosenMove, moveResult, () => {
+        this.completeDealAfterBid();
+      });
     }
 
     completeDealAfterBid() {
@@ -716,6 +773,17 @@
       const isFirstMoveOfDeal = (this.turnNumber === 0 && this.isOpeningPhase);
       const isFinalTurnOfDeal = this.players.every(p => p.hand.length === 0);
 
+      const moveResult = {
+        type: move.type,
+        card: card,
+        player: player,
+        badgeText: '',
+        badgeClass: '',
+        descriptionHtml: '',
+        isSweep: false,
+        pts: 0
+      };
+
       if (move.type === 'capture') {
         // Collect captured cards
         const captured = [card];
@@ -741,11 +809,14 @@
         teamStats.capturedCards.push(...captured);
         this.lastCapturingTeam = player.team;
 
+        const pts = captured.reduce((sum, c) => sum + c.scorePoints, 0);
+        moveResult.pts = pts;
+
         // Check for SEEP (Sweep)
-        // If floor has NO houses and NO loose cards left
         if (this.floorHouses.length === 0 && this.floorLooseCards.length === 0) {
           if (!isFinalTurnOfDeal) {
             isSweep = true;
+            moveResult.isSweep = true;
             const sweepBonus = isFirstMoveOfDeal ? 25 : 50;
             teamStats.sweepsCount++;
             teamStats.sweepsBonus += sweepBonus;
@@ -754,23 +825,32 @@
             this.triggerConfetti();
             this.showToast(`⚡ SEEP! ${player.name} cleared the floor! (+${sweepBonus} pts)`, '⚡', true);
             this.logMessage(`⚡ SEEP (SWEEP) by ${player.name}! +${sweepBonus} Bonus Points!`, true);
-          } else {
-            // Last play does not get sweep bonus
-            this.logMessage(`🧹 Final cards captured by ${player.name} (No sweep bonus on final trick).`);
-          }
-        }
 
-        if (!isSweep) {
+            moveResult.badgeText = `⚡ SEEP (+${sweepBonus})`;
+            moveResult.badgeClass = 'badge-seep';
+            moveResult.descriptionHtml = `⚡ <strong>SEEP (SWEEP)!</strong> <strong>${player.name}</strong> played <strong>${card.label}</strong> and cleared the entire floor! <strong>+${sweepBonus} Bonus Points!</strong>`;
+          } else {
+            this.logMessage(`🧹 Final cards captured by ${player.name} (No sweep bonus on final trick).`);
+            moveResult.badgeText = `🧹 Final Capture (+${pts} pts)`;
+            moveResult.badgeClass = 'badge-capture';
+            moveResult.descriptionHtml = `Played <strong>${card.label}</strong> and captured the final table cards (<strong>+${pts} pts</strong>).`;
+          }
+        } else {
           this.sound.playCardCapture();
-          const pts = captured.reduce((sum, c) => sum + c.scorePoints, 0);
           this.logMessage(`🎯 ${player.name} played ${card.label} and captured ${captured.length} cards (+${pts} pts).`);
+
+          const houseNames = (move.houses && move.houses.length > 0) ? `House of ${move.houses.map(h => h.value).join(', ')}` : '';
+          const looseNames = (move.looseCards && move.looseCards.length > 0) ? `loose [${move.looseCards.map(c => c.label).join(', ')}]` : '';
+          const capturedWhat = [houseNames, looseNames].filter(Boolean).join(' and ');
+
+          moveResult.badgeText = `⚡ Captured (+${pts} pts)`;
+          moveResult.badgeClass = 'badge-capture';
+          moveResult.descriptionHtml = `Played <strong>${card.label}</strong> and picked up ${capturedWhat} (<strong>+${pts} pts</strong>).`;
         }
 
       } else if (move.type === 'build') {
         // Build new house
-        // House value = move.targetValue
         const houseCards = [card, ...move.floorCards];
-        // Remove floorCards from loose
         const usedIds = new Set(move.floorCards.map(c => c.id));
         this.floorLooseCards = this.floorLooseCards.filter(c => !usedIds.has(c.id));
 
@@ -787,6 +867,10 @@
         this.sound.playHouseBuild();
         this.logMessage(`🏠 ${player.name} built a House of ${move.targetValue} using ${card.label} and floor cards.`);
 
+        moveResult.badgeText = `🏠 House of ${move.targetValue}`;
+        moveResult.badgeClass = 'badge-build';
+        moveResult.descriptionHtml = `Played <strong>${card.label}</strong> with loose card(s) [${move.floorCards.map(c => c.label).join(', ')}] to construct a <strong>House of ${move.targetValue}</strong>.`;
+
       } else if (move.type === 'cement') {
         // Cement existing house
         const targetHouse = this.floorHouses.find(h => h.id === move.houseId);
@@ -802,10 +886,14 @@
           this.sound.playHouseCement();
           this.logMessage(`🔒 ${player.name} CEMENTED (Pakka) the House of ${targetHouse.value}! It is now locked.`);
           this.showToast(`${player.name} Cemented the House of ${targetHouse.value}!`, '🔒');
+
+          moveResult.badgeText = '🔒 Pakka House';
+          moveResult.badgeClass = 'badge-cement';
+          moveResult.descriptionHtml = `Played <strong>${card.label}</strong> to <strong>CEMENT (Pakka)</strong> the House of ${targetHouse.value}! It is now locked against raises.`;
         }
 
       } else if (move.type === 'raise') {
-        // Raise / Break uncemented house to a higher value
+        // Raise / Break uncemented house
         const targetHouse = this.floorHouses.find(h => h.id === move.houseId);
         if (targetHouse) {
           targetHouse.cards.push(card);
@@ -817,33 +905,140 @@
           const oldVal = targetHouse.value;
           targetHouse.value = move.newTargetValue;
           targetHouse.ownerTeam = player.team;
-          targetHouse.cemented = false; // still uncemented at new value unless cemented later
+          targetHouse.cemented = false;
           this.sound.playHouseBuild();
           this.logMessage(`🔨 ${player.name} BROKE & RAISED the House of ${oldVal} up to ${move.newTargetValue}!`);
           this.showToast(`${player.name} Raised House ${oldVal} ➔ ${move.newTargetValue}!`, '🔨');
+
+          moveResult.badgeText = `🔨 Raised to ${move.newTargetValue}`;
+          moveResult.badgeClass = 'badge-raise';
+          moveResult.descriptionHtml = `Played <strong>${card.label}</strong> to <strong>BREAK & RAISE</strong> the House of ${oldVal} up to <strong>${move.newTargetValue}</strong>!`;
         }
 
       } else {
         // Throw loose card to floor
         this.floorLooseCards.push(card);
         this.logMessage(`🃏 ${player.name} played ${card.label} as a loose card.`);
+
+        moveResult.badgeText = '🃏 Discarded';
+        moveResult.badgeClass = 'badge-loose';
+        moveResult.descriptionHtml = `Played <strong>${card.label}</strong> as a loose card onto the table.`;
       }
 
       this.updateScoreboardUI();
+      return moveResult;
+    }
+
+    // --- Turn Showcase & Observational Pause (10s Default) ---
+    displayTurnShowcase(player, card, move, moveResult, callback) {
+      // If pause setting is 0, continue immediately
+      if (this.turnPauseSetting === '0') {
+        callback();
+        return;
+      }
+
+      this.clearTurnPauseTimer();
+      this.pendingTurnCallback = callback;
+
+      // Render played card in showcase slot
+      this.dom.showcaseCardSlot.innerHTML = '';
+      const cardEl = this.createCardElement(card, false);
+      this.dom.showcaseCardSlot.appendChild(cardEl);
+
+      // Player avatar & tag
+      const avatar = player.id === 0 ? '👑' : player.id === 2 ? '👳' : player.id === 1 ? '🧔' : '👨';
+      this.dom.showcaseAvatar.textContent = avatar;
+      this.dom.showcasePlayerName.textContent = `${player.name} (${player.role})`;
+
+      // Badge & message
+      this.dom.showcaseActionBadge.className = 'showcase-badge ' + (moveResult.badgeClass || 'badge-loose');
+      this.dom.showcaseActionBadge.textContent = moveResult.badgeText || 'Action';
+      this.dom.showcaseMessage.innerHTML = moveResult.descriptionHtml;
+
+      // Show the bar
+      this.dom.turnShowcaseBar.style.display = 'flex';
+      this.isPauseTimerPaused = false;
+      this.dom.pauseTimerIcon.textContent = '⏸';
+
+      // Manual mode: wait for user to click Continue
+      if (this.turnPauseSetting === 'manual') {
+        this.dom.showcaseTimerBar.style.width = '100%';
+        this.dom.showcaseCountdownNum.textContent = 'Manual';
+        return;
+      }
+
+      const durationMs = this.turnPauseMs;
+      let remainingMs = durationMs;
+      this.pauseTimerRemainingMs = remainingMs;
+
+      this.dom.showcaseTimerBar.style.width = '100%';
+      this.dom.showcaseCountdownNum.textContent = `${Math.ceil(remainingMs / 1000)}s`;
+
+      const intervalStep = 100;
+      this.pauseTimerInterval = setInterval(() => {
+        if (this.isPauseTimerPaused) return;
+
+        remainingMs -= intervalStep;
+        this.pauseTimerRemainingMs = remainingMs;
+
+        const percent = Math.max(0, (remainingMs / durationMs) * 100);
+        this.dom.showcaseTimerBar.style.width = `${percent}%`;
+        this.dom.showcaseCountdownNum.textContent = `${Math.ceil(remainingMs / 1000)}s`;
+
+        if (remainingMs <= 0) {
+          this.skipTurnPause();
+        }
+      }, intervalStep);
+    }
+
+    skipTurnPause() {
+      this.clearTurnPauseTimer();
+      if (this.dom.turnShowcaseBar) {
+        this.dom.turnShowcaseBar.style.display = 'none';
+      }
+      if (this.pendingTurnCallback) {
+        const cb = this.pendingTurnCallback;
+        this.pendingTurnCallback = null;
+        cb();
+      }
+    }
+
+    toggleTurnPauseTimer() {
+      if (this.turnPauseSetting === 'manual') return;
+      this.isPauseTimerPaused = !this.isPauseTimerPaused;
+      this.dom.pauseTimerIcon.textContent = this.isPauseTimerPaused ? '▶' : '⏸';
+      if (this.isPauseTimerPaused) {
+        this.showToast('Turn review timer paused. Take your time!', '⏸');
+      } else {
+        this.showToast('Turn review timer resumed.', '▶');
+      }
+    }
+
+    clearTurnPauseTimer() {
+      if (this.pauseTimerInterval) {
+        clearInterval(this.pauseTimerInterval);
+        this.pauseTimerInterval = null;
+      }
     }
 
     // --- AI Turn Logic ---
     executeAITurn(bot) {
       const bestMove = this.getBestAIMove(bot);
-      if (bestMove) {
-        this.executeMove(bot, bestMove.card, bestMove.move);
+      if (!bestMove) {
+        this.nextTurn();
+        return;
       }
 
-      if (this.isOpeningPhase && bot.id === this.bidderIndex) {
-        this.completeDealAfterBid();
-      } else {
-        this.nextTurn();
-      }
+      const moveResult = this.executeMove(bot, bestMove.card, bestMove.move);
+      const nextCb = () => {
+        if (this.isOpeningPhase && bot.id === this.bidderIndex) {
+          this.completeDealAfterBid();
+        } else {
+          this.nextTurn();
+        }
+      };
+
+      this.displayTurnShowcase(bot, bestMove.card, bestMove.move, moveResult, nextCb);
     }
 
     getBestAIMove(bot) {
@@ -1278,14 +1473,18 @@
         }
 
         btn.addEventListener('click', () => {
-          this.executeMove(player, card, m);
+          const moveResult = this.executeMove(player, card, m);
           this.resetActionBar();
 
-          if (this.isOpeningPhase && player.id === this.bidderIndex) {
-            this.completeDealAfterBid();
-          } else {
-            this.nextTurn();
-          }
+          const nextCb = () => {
+            if (this.isOpeningPhase && player.id === this.bidderIndex) {
+              this.completeDealAfterBid();
+            } else {
+              this.nextTurn();
+            }
+          };
+
+          this.displayTurnShowcase(player, card, m, moveResult, nextCb);
         });
 
         this.dom.actionButtons.appendChild(btn);
