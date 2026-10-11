@@ -482,8 +482,26 @@
             floorLooseCards: this.game.floorLooseCards,
             roundStats: {
               team1Sweeps: this.game.roundStats.team1.sweepsCount,
-              team2Sweeps: this.game.roundStats.team2.sweepsCount
+              team2Sweeps: this.game.roundStats.team2.sweepsCount,
+              team1Bonus: this.game.roundStats.team1.sweepsBonus,
+              team2Bonus: this.game.roundStats.team2.sweepsBonus,
+              team1Cards: this.game.roundStats.team1.cardsPoints,
+              team2Cards: this.game.roundStats.team2.cardsPoints
             },
+            players: this.game.players.map(p => ({
+              id: p.id,
+              name: p.name,
+              role: p.role,
+              team: p.team,
+              isHuman: p.isHuman,
+              securedPoints: p.securedPoints || 0,
+              spadesPoints: p.spadesPoints || 0,
+              d10Points: p.d10Points || 0,
+              acesPoints: p.acesPoints || 0,
+              sweepsCount: p.sweepsCount || 0,
+              sweepsBonus: p.sweepsBonus || 0,
+              capturedCardsCount: p.capturedCards ? p.capturedCards.length : 0
+            })),
             matchScores: this.game.matchScores,
             seats: this.seats,
             handCounts: this.game.players.map(p => p.hand.length),
@@ -650,8 +668,27 @@
       this.game.floorLooseCards = state.floorLooseCards;
       this.game.matchScores = state.matchScores;
 
-      // Assign private hand to this client's player entity
+      if (state.roundStats && this.game.roundStats) {
+        this.game.roundStats.team1.sweepsCount = state.roundStats.team1Sweeps || 0;
+        this.game.roundStats.team2.sweepsCount = state.roundStats.team2Sweeps || 0;
+        this.game.roundStats.team1.sweepsBonus = state.roundStats.team1Bonus || 0;
+        this.game.roundStats.team2.sweepsBonus = state.roundStats.team2Bonus || 0;
+        this.game.roundStats.team1.cardsPoints = state.roundStats.team1Cards || 0;
+        this.game.roundStats.team2.cardsPoints = state.roundStats.team2Cards || 0;
+      }
+
+      // Assign private hand and sync points to player entities
       this.game.players.forEach(p => {
+        const remoteP = state.players ? state.players.find(rp => rp.id === p.id) : null;
+        if (remoteP) {
+          p.securedPoints = remoteP.securedPoints;
+          p.spadesPoints = remoteP.spadesPoints;
+          p.d10Points = remoteP.d10Points;
+          p.acesPoints = remoteP.acesPoints;
+          p.sweepsCount = remoteP.sweepsCount;
+          p.sweepsBonus = remoteP.sweepsBonus;
+        }
+
         if (p.id === this.mySeat) {
           p.hand = state.yourHand;
           p.isHuman = true;

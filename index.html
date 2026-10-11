@@ -24,6 +24,7 @@
       <div class="team-pill team-you">
         <span class="team-label" id="labelTeam1">Team 1 (You & Partner)</span>
         <span class="team-score" id="scoreTeam1">0</span>
+        <span class="round-score-pill" id="roundScoreTeam1">+0 deal</span>
       </div>
       <div class="score-divider">
         <div class="baazi-lead" id="baaziLeadBadge">Baazi Lead: 0 pts</div>
@@ -32,6 +33,7 @@
       <div class="team-pill team-opp">
         <span class="team-label" id="labelTeam2">Team 2 (Opponents)</span>
         <span class="team-score" id="scoreTeam2">0</span>
+        <span class="round-score-pill" id="roundScoreTeam2">+0 deal</span>
       </div>
     </div>
 
@@ -105,6 +107,9 @@
       <div class="status-stat">Deal: <strong id="dealRoundNum">Round 1</strong></div>
       <div class="status-stat">Bid: <strong id="currentBidText">Waiting...</strong></div>
       <div class="status-stat">Sweeps (Seeps): <strong id="sweepsCountText">0 - 0</strong></div>
+      <button class="btn btn-sm" id="btnPointsTable" style="padding: 2px 8px; font-size: 0.75rem; background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.4); color: #fef08a;" title="View Live Points Breakdown for All Players">
+        <span>📊 Points Table</span>
+      </button>
     </div>
   </div>
 
@@ -119,7 +124,10 @@
           <div class="player-name" id="nameNorth">Gurpreet (Partner)</div>
           <div class="player-role" id="roleNorth">Team 1 • North</div>
         </div>
-        <div class="player-cards-count" id="countNorth">12 cards</div>
+        <div class="player-stats-col">
+          <div class="player-points-badge" id="ptsNorth" title="Points secured this deal">⭐ 0 pts</div>
+          <div class="player-cards-count" id="countNorth">12 cards</div>
+        </div>
       </div>
       <!-- Facedown cards representation -->
       <div class="facedown-hand" id="handNorthFacedown"></div>
@@ -167,7 +175,10 @@
             <div class="player-name" id="nameWest">Vikram</div>
             <div class="player-role">Team 2 • West</div>
           </div>
-          <div class="player-cards-count" id="countWest">12 cards</div>
+          <div class="player-stats-col">
+            <div class="player-points-badge" id="ptsWest" title="Points secured this deal">⭐ 0 pts</div>
+            <div class="player-cards-count" id="countWest">12 cards</div>
+          </div>
         </div>
         <div class="facedown-hand" id="handWestFacedown"></div>
       </section>
@@ -250,7 +261,10 @@
             <div class="player-name" id="nameEast">Kabir</div>
             <div class="player-role">Team 2 • East</div>
           </div>
-          <div class="player-cards-count" id="countEast">12 cards</div>
+          <div class="player-stats-col">
+            <div class="player-points-badge" id="ptsEast" title="Points secured this deal">⭐ 0 pts</div>
+            <div class="player-cards-count" id="countEast">12 cards</div>
+          </div>
         </div>
         <div class="facedown-hand" id="handEastFacedown"></div>
       </section>
@@ -285,7 +299,10 @@
           <div class="player-name" id="nameSouth">You (Anil)</div>
           <div class="player-role" style="color: #34d399;">Team 1 • South (Leader)</div>
         </div>
-        <div class="player-cards-count" id="countSouth">12 cards</div>
+        <div class="player-stats-col">
+          <div class="player-points-badge" id="ptsSouth" title="Points secured this deal">⭐ 0 pts</div>
+          <div class="player-cards-count" id="countSouth">12 cards</div>
+        </div>
       </div>
 
     </section>
@@ -786,6 +803,55 @@
         <small style="color: #94a3b8; font-size: 0.75rem; display: block; text-align: center; margin-top: 8px;">
           💡 You can also switch modes anytime from the ⚙️ Settings menu or during Multiplayer hosting!
         </small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Live Points Table (Real-Time Points Breakdown) -->
+  <div class="modal-overlay" id="pointsModal">
+    <div class="modal-box" style="max-width: 640px;">
+      <div class="modal-header">
+        <h2>📊 Real-Time Secured Points Table</h2>
+        <button class="modal-close" id="btnClosePointsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.86rem; color: #cbd5e1; margin-bottom: 12px;" id="pointsModalLead">
+          Points secured by each player and team during the current deal (Total 100 card points + Sweeps):
+        </p>
+
+        <div style="overflow-x: auto;">
+          <table class="score-table" id="pointsBreakdownTable">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Team</th>
+                <th>♠ Spades</th>
+                <th>10♦ & Aces</th>
+                <th>⚡ Sweeps</th>
+                <th style="color: #fde047; text-align: right;">Total Pts</th>
+              </tr>
+            </thead>
+            <tbody id="pointsTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+            <tfoot>
+              <tr style="font-weight: 700; background: rgba(251, 191, 36, 0.12); border-top: 2px solid rgba(251, 191, 36, 0.4);">
+                <td colspan="2">Deck Progress</td>
+                <td colspan="4" style="text-align: right; color: #fde047;" id="pointsTableDeckSum">0 / 100 card points captured</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 14px; background: rgba(0,0,0,0.25); padding: 10px 12px; border-radius: 8px; font-size: 0.78rem; color: #94a3b8; line-height: 1.4;">
+          <span>💡</span>
+          <div>
+            <strong>Point Values in Seep:</strong> All 13 Spades = 91 pts (Ace=1 ... King=13) • 10 of Diamonds = 6 pts • 3 Other Aces = 1 pt each. (Total = 100 pts). Each Sweep (Seep) = +50 pts (First turn) or +25 pts.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnDismissPointsModal">Close</button>
       </div>
     </div>
   </div>

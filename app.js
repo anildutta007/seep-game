@@ -274,16 +274,16 @@
     initPlayers() {
       if (this.mode === '4p') {
         this.players = [
-          { id: 0, name: 'You (Anil)', role: 'South', team: 1, isHuman: true, hand: [] },
-          { id: 1, name: 'Vikram', role: 'West', team: 2, isHuman: false, hand: [] },
-          { id: 2, name: 'Gurpreet', role: 'North (Partner)', team: 1, isHuman: false, hand: [] },
-          { id: 3, name: 'Kabir', role: 'East', team: 2, isHuman: false, hand: [] }
+          { id: 0, name: 'You (Anil)', role: 'South', team: 1, isHuman: true, hand: [], capturedCards: [], securedPoints: 0, spadesPoints: 0, d10Points: 0, acesPoints: 0, sweepsCount: 0, sweepsBonus: 0 },
+          { id: 1, name: 'Vikram', role: 'West', team: 2, isHuman: false, hand: [], capturedCards: [], securedPoints: 0, spadesPoints: 0, d10Points: 0, acesPoints: 0, sweepsCount: 0, sweepsBonus: 0 },
+          { id: 2, name: 'Gurpreet', role: 'North (Partner)', team: 1, isHuman: false, hand: [], capturedCards: [], securedPoints: 0, spadesPoints: 0, d10Points: 0, acesPoints: 0, sweepsCount: 0, sweepsBonus: 0 },
+          { id: 3, name: 'Kabir', role: 'East', team: 2, isHuman: false, hand: [], capturedCards: [], securedPoints: 0, spadesPoints: 0, d10Points: 0, acesPoints: 0, sweepsCount: 0, sweepsBonus: 0 }
         ];
       } else {
         // 2-Player Duel: South (You) vs North (Opponent)
         this.players = [
-          { id: 0, name: 'You (Anil)', role: 'South', team: 1, isHuman: true, hand: [] },
-          { id: 1, name: 'Vikram', role: 'North (Opponent)', team: 2, isHuman: false, hand: [] }
+          { id: 0, name: 'You (Anil)', role: 'South', team: 1, isHuman: true, hand: [], capturedCards: [], securedPoints: 0, spadesPoints: 0, d10Points: 0, acesPoints: 0, sweepsCount: 0, sweepsBonus: 0 },
+          { id: 1, name: 'Vikram', role: 'North (Opponent)', team: 2, isHuman: false, hand: [], capturedCards: [], securedPoints: 0, spadesPoints: 0, d10Points: 0, acesPoints: 0, sweepsCount: 0, sweepsBonus: 0 }
         ];
       }
     }
@@ -474,6 +474,21 @@
         btnSelect4P: document.getElementById('btnSelect4P'),
         btnSelect2P: document.getElementById('btnSelect2P'),
 
+        // Points tracking & live modal
+        roundScoreTeam1: document.getElementById('roundScoreTeam1'),
+        roundScoreTeam2: document.getElementById('roundScoreTeam2'),
+        ptsSouth: document.getElementById('ptsSouth'),
+        ptsNorth: document.getElementById('ptsNorth'),
+        ptsWest: document.getElementById('ptsWest'),
+        ptsEast: document.getElementById('ptsEast'),
+        btnPointsTable: document.getElementById('btnPointsTable'),
+        pointsModal: document.getElementById('pointsModal'),
+        btnClosePointsModal: document.getElementById('btnClosePointsModal'),
+        btnDismissPointsModal: document.getElementById('btnDismissPointsModal'),
+        pointsTableBody: document.getElementById('pointsTableBody'),
+        pointsTableDeckSum: document.getElementById('pointsTableDeckSum'),
+        pointsModalLead: document.getElementById('pointsModalLead'),
+
         confettiCanvas: document.getElementById('confetti-canvas')
       };
     }
@@ -489,6 +504,20 @@
       this.dom.btnSelect2P?.addEventListener('click', () => this.switchGameMode('2p'));
       this.dom.cardMode4P?.addEventListener('click', () => this.switchGameMode('4p'));
       this.dom.cardMode2P?.addEventListener('click', () => this.switchGameMode('2p'));
+
+      // Points Table Modal
+      this.dom.btnPointsTable?.addEventListener('click', () => {
+        this.renderPointsModalTable();
+        this.showModal(this.dom.pointsModal);
+      });
+      this.dom.btnClosePointsModal?.addEventListener('click', () => this.hideModal(this.dom.pointsModal));
+      this.dom.btnDismissPointsModal?.addEventListener('click', () => this.hideModal(this.dom.pointsModal));
+      [this.dom.ptsSouth, this.dom.ptsNorth, this.dom.ptsWest, this.dom.ptsEast].forEach(el => {
+        el?.addEventListener('click', () => {
+          this.renderPointsModalTable();
+          this.showModal(this.dom.pointsModal);
+        });
+      });
 
       // Top nav
       this.dom.btnRules.addEventListener('click', () => this.showModal(this.dom.rulesModal));
@@ -634,10 +663,22 @@
       this.isRoundOver = false;
       this.turnNumber = 0;
       this.lastCapturingTeam = null;
+      this.lastCapturingPlayer = null;
       this.selectedCardId = null;
       this.floorHouses = [];
       this.floorLooseCards = [];
       this.houseIdCounter = 1;
+
+      // Reset individual player point stats for this deal
+      this.players.forEach(p => {
+        p.capturedCards = [];
+        p.securedPoints = 0;
+        p.spadesPoints = 0;
+        p.d10Points = 0;
+        p.acesPoints = 0;
+        p.sweepsCount = 0;
+        p.sweepsBonus = 0;
+      });
 
       this.roundStats = {
         team1: { spades: 0, d10: 0, aces: 0, cardsPoints: 0, sweepsCount: 0, sweepsBonus: 0, capturedCards: [] },
@@ -951,8 +992,26 @@
         const teamStats = player.team === 1 ? this.roundStats.team1 : this.roundStats.team2;
         teamStats.capturedCards.push(...captured);
         this.lastCapturingTeam = player.team;
+        this.lastCapturingPlayer = player;
+
+        // Credit to individual player
+        if (!player.capturedCards) player.capturedCards = [];
+        player.capturedCards.push(...captured);
+
+        let capturedSpades = 0;
+        let capturedD10 = 0;
+        let capturedAces = 0;
+        captured.forEach(c => {
+          if (c.suit === 'spades') capturedSpades += c.captureValue;
+          else if (c.suit === 'diamonds' && c.rank === '10') capturedD10 += 6;
+          else if (c.rank === 'A' && c.suit !== 'spades') capturedAces += 1;
+        });
+        player.spadesPoints = (player.spadesPoints || 0) + capturedSpades;
+        player.d10Points = (player.d10Points || 0) + capturedD10;
+        player.acesPoints = (player.acesPoints || 0) + capturedAces;
 
         const pts = captured.reduce((sum, c) => sum + c.scorePoints, 0);
+        player.securedPoints = (player.securedPoints || 0) + pts;
         moveResult.pts = pts;
 
         // Check for SEEP (Sweep)
@@ -963,6 +1022,9 @@
             const sweepBonus = isFirstMoveOfDeal ? 25 : 50;
             teamStats.sweepsCount++;
             teamStats.sweepsBonus += sweepBonus;
+            player.sweepsCount = (player.sweepsCount || 0) + 1;
+            player.sweepsBonus = (player.sweepsBonus || 0) + sweepBonus;
+            player.securedPoints = (player.securedPoints || 0) + sweepBonus;
 
             this.sound.playSweepFanfare();
             this.triggerConfetti();
@@ -1557,7 +1619,17 @@
 
         if (remainingCards.length > 0) {
           teamStats.capturedCards.push(...remainingCards);
-          this.logMessage(`🧹 Remaining ${remainingCards.length} table cards awarded to Team ${this.lastCapturingTeam} (Last capture team).`);
+          if (this.lastCapturingPlayer) {
+            if (!this.lastCapturingPlayer.capturedCards) this.lastCapturingPlayer.capturedCards = [];
+            this.lastCapturingPlayer.capturedCards.push(...remainingCards);
+            remainingCards.forEach(c => {
+              if (c.suit === 'spades') this.lastCapturingPlayer.spadesPoints = (this.lastCapturingPlayer.spadesPoints || 0) + c.captureValue;
+              else if (c.suit === 'diamonds' && c.rank === '10') this.lastCapturingPlayer.d10Points = (this.lastCapturingPlayer.d10Points || 0) + 6;
+              else if (c.rank === 'A' && c.suit !== 'spades') this.lastCapturingPlayer.acesPoints = (this.lastCapturingPlayer.acesPoints || 0) + 1;
+              this.lastCapturingPlayer.securedPoints = (this.lastCapturingPlayer.securedPoints || 0) + c.scorePoints;
+            });
+          }
+          this.logMessage(`🧹 Remaining ${remainingCards.length} table cards awarded to Team ${this.lastCapturingTeam} (${this.lastCapturingPlayer ? this.lastCapturingPlayer.name : 'Last capture'}).`);
         }
       }
 
@@ -1588,6 +1660,7 @@
       this.matchScores.team2 += team2RoundTotal;
       this.matchScores.roundsPlayed += 1;
       this.saveMatchScores();
+      this.updateScoreboardUI();
 
       // Check Baazi Win Condition (Lead of at least 100 points)
       const diff = Math.abs(this.matchScores.team1 - this.matchScores.team2);
@@ -1928,6 +2001,12 @@
       this.dom.scoreTeam1.textContent = this.matchScores.team1;
       this.dom.scoreTeam2.textContent = this.matchScores.team2;
 
+      // Current deal points per team
+      const t1DealPts = (this.roundStats?.team1?.capturedCards?.reduce((s, c) => s + (c.scorePoints || 0), 0) || (this.roundStats?.team1?.cardsPoints || 0)) + (this.roundStats?.team1?.sweepsBonus || 0);
+      const t2DealPts = (this.roundStats?.team2?.capturedCards?.reduce((s, c) => s + (c.scorePoints || 0), 0) || (this.roundStats?.team2?.cardsPoints || 0)) + (this.roundStats?.team2?.sweepsBonus || 0);
+      if (this.dom.roundScoreTeam1) this.dom.roundScoreTeam1.textContent = `+${t1DealPts} deal`;
+      if (this.dom.roundScoreTeam2) this.dom.roundScoreTeam2.textContent = `+${t2DealPts} deal`;
+
       if (this.dom.labelTeam1) {
         this.dom.labelTeam1.textContent = this.mode === '4p' ? 'Team 1 (You & Partner)' : 'Team 1 (You)';
       }
@@ -1944,6 +2023,84 @@
 
       this.dom.dealRoundNum.textContent = `Round ${this.matchScores.roundsPlayed + 1}`;
       this.dom.sweepsCountText.textContent = `${this.roundStats.team1.sweepsCount} - ${this.roundStats.team2.sweepsCount}`;
+
+      // Live points secured per player on badges
+      const pSouth = this.players[0];
+      if (this.dom.ptsSouth && pSouth) {
+        this.dom.ptsSouth.textContent = `⭐ ${pSouth.securedPoints || 0} pts`;
+        this.dom.ptsSouth.title = `${pSouth.name}: ${pSouth.securedPoints || 0} pts secured this deal (Spades: ${pSouth.spadesPoints || 0}, 10♦: ${pSouth.d10Points || 0}, Aces: ${pSouth.acesPoints || 0}, Sweeps: ${pSouth.sweepsBonus || 0} pts)`;
+      }
+
+      if (this.mode === '4p') {
+        const pWest = this.players[1];
+        const pNorth = this.players[2];
+        const pEast = this.players[3];
+        if (this.dom.ptsWest && pWest) {
+          this.dom.ptsWest.textContent = `⭐ ${pWest.securedPoints || 0} pts`;
+          this.dom.ptsWest.title = `${pWest.name}: ${pWest.securedPoints || 0} pts secured this deal (Spades: ${pWest.spadesPoints || 0}, 10♦: ${pWest.d10Points || 0}, Aces: ${pWest.acesPoints || 0}, Sweeps: ${pWest.sweepsBonus || 0} pts)`;
+        }
+        if (this.dom.ptsNorth && pNorth) {
+          this.dom.ptsNorth.textContent = `⭐ ${pNorth.securedPoints || 0} pts`;
+          this.dom.ptsNorth.title = `${pNorth.name}: ${pNorth.securedPoints || 0} pts secured this deal (Spades: ${pNorth.spadesPoints || 0}, 10♦: ${pNorth.d10Points || 0}, Aces: ${pNorth.acesPoints || 0}, Sweeps: ${pNorth.sweepsBonus || 0} pts)`;
+        }
+        if (this.dom.ptsEast && pEast) {
+          this.dom.ptsEast.textContent = `⭐ ${pEast.securedPoints || 0} pts`;
+          this.dom.ptsEast.title = `${pEast.name}: ${pEast.securedPoints || 0} pts secured this deal (Spades: ${pEast.spadesPoints || 0}, 10♦: ${pEast.d10Points || 0}, Aces: ${pEast.acesPoints || 0}, Sweeps: ${pEast.sweepsBonus || 0} pts)`;
+        }
+      } else {
+        const pNorth = this.players[1];
+        if (this.dom.ptsNorth && pNorth) {
+          this.dom.ptsNorth.textContent = `⭐ ${pNorth.securedPoints || 0} pts`;
+          this.dom.ptsNorth.title = `${pNorth.name}: ${pNorth.securedPoints || 0} pts secured this deal (Spades: ${pNorth.spadesPoints || 0}, 10♦: ${pNorth.d10Points || 0}, Aces: ${pNorth.acesPoints || 0}, Sweeps: ${pNorth.sweepsBonus || 0} pts)`;
+        }
+      }
+
+      // If points modal is open, refresh it live
+      if (this.dom.pointsModal && this.dom.pointsModal.classList.contains('active')) {
+        this.renderPointsModalTable();
+      }
+    }
+
+    renderPointsModalTable() {
+      if (!this.dom.pointsTableBody) return;
+      let html = '';
+      let totalCapturedCardPts = 0;
+
+      this.players.forEach(p => {
+        const cardPts = (p.spadesPoints || 0) + (p.d10Points || 0) + (p.acesPoints || 0);
+        totalCapturedCardPts += cardPts;
+        const totalPts = cardPts + (p.sweepsBonus || 0);
+        const teamBadge = p.team === 1 
+          ? '<span style="color: #6ee7b7; font-weight: 700;">Team 1</span>' 
+          : '<span style="color: #fde047; font-weight: 700;">Team 2</span>';
+        const sweepText = (p.sweepsCount || 0) > 0 ? `⚡ ${p.sweepsCount} (+${p.sweepsBonus || 0} pts)` : '<span style="color: #64748b;">-</span>';
+        const isHuman = p.isHuman;
+        
+        html += `
+          <tr style="${isHuman ? 'background: rgba(16, 185, 129, 0.12);' : ''}">
+            <td style="font-weight: 600;">
+              ${isHuman ? '👑 ' : ''}${p.name}
+              <div style="font-size: 0.72rem; color: #94a3b8;">${p.role}</div>
+            </td>
+            <td>${teamBadge}</td>
+            <td style="color: #93c5fd; font-weight: 600;">♠ ${p.spadesPoints || 0} pts</td>
+            <td>
+              <span style="color: #f87171; font-weight: 600;">♦${p.d10Points || 0}</span>
+              <span style="color: #64748b;"> / </span>
+              <span style="color: #a78bfa; font-weight: 600;">A:${p.acesPoints || 0}</span>
+            </td>
+            <td>${sweepText}</td>
+            <td style="color: #fde047; font-weight: 800; text-align: right; font-size: 0.95rem;">
+              ⭐ ${totalPts} pts
+            </td>
+          </tr>
+        `;
+      });
+
+      this.dom.pointsTableBody.innerHTML = html;
+      if (this.dom.pointsTableDeckSum) {
+        this.dom.pointsTableDeckSum.textContent = `${totalCapturedCardPts} / 100 card points captured`;
+      }
     }
 
     // --- Toast & Logging ---
