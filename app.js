@@ -256,6 +256,7 @@
       this.bindEvents();
       this.loadSavedMatch();
       this.updateModeButtonUI();
+      this.initVisitorCounter();
 
       // Initialize Multiplayer controller
       if (window.SeepMultiplayer) {
@@ -494,6 +495,9 @@
         handBackdrop: document.getElementById('handBackdrop'),
         handForeground: document.getElementById('handForeground'),
         settingHandStyle: document.getElementById('settingHandStyle'),
+
+        // Visitor counter
+        visitorCountNum: document.getElementById('visitorCountNum'),
 
         confettiCanvas: document.getElementById('confetti-canvas')
       };
@@ -2292,6 +2296,74 @@
 
     hideModal(modal) {
       modal.classList.remove('active');
+    }
+
+    // --- Visitor Counter ---
+    initVisitorCounter() {
+      const counterEl = this.dom?.visitorCountNum || document.getElementById('visitorCountNum');
+      if (!counterEl) return;
+
+      const API_KEY = 'anildutta007-seep-game';
+      const hasVisitedThisSession = sessionStorage.getItem('seep_visited_session') === 'true';
+      const endpoint = hasVisitedThisSession
+        ? `https://countapi.mileshilliard.com/api/v1/get/${API_KEY}`
+        : `https://countapi.mileshilliard.com/api/v1/hit/${API_KEY}`;
+
+      sessionStorage.setItem('seep_visited_session', 'true');
+
+      // Helper to animate count rolling up
+      const displayCount = (targetNum) => {
+        const lastNum = parseInt(localStorage.getItem('seep_cached_visitors') || '0', 10);
+        localStorage.setItem('seep_cached_visitors', targetNum.toString());
+
+        let start = Math.max(0, targetNum - 40);
+        if (lastNum > 0 && Math.abs(targetNum - lastNum) < 100) {
+          start = Math.min(start, lastNum);
+        }
+        const duration = 800;
+        const startTime = performance.now();
+
+        const step = (now) => {
+          const progress = Math.min(1, (now - startTime) / duration);
+          const current = Math.round(start + (targetNum - start) * progress);
+          counterEl.textContent = current.toLocaleString();
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else {
+            counterEl.textContent = targetNum.toLocaleString();
+          }
+        };
+        requestAnimationFrame(step);
+      };
+
+      // Fetch with timeout fallback
+      const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 4000) : null;
+
+      fetch(endpoint, controller ? { signal: controller.signal } : {})
+        .then(res => {
+          if (timeoutId) clearTimeout(timeoutId);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          if (data && typeof data.value === 'number') {
+            displayCount(data.value);
+          } else {
+            throw new Error('Invalid counter data');
+          }
+        })
+        .catch(() => {
+          if (timeoutId) clearTimeout(timeoutId);
+          let fallback = parseInt(localStorage.getItem('seep_cached_visitors') || '0', 10);
+          if (!fallback || isNaN(fallback)) {
+            fallback = 142; // baseline initial visitors
+          }
+          if (!hasVisitedThisSession) {
+            fallback += 1;
+          }
+          displayCount(fallback);
+        });
     }
 
     // --- Confetti Celebration ---
